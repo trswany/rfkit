@@ -2,12 +2,24 @@
 
 Verilog HDL modules for use in RF projects.
 
-## Install Verilog simulator
+## Install VUnit
+
+This kit uses the [VUnit](https://vunit.github.io/) testing framework for all
+testbenches. VUnit is written in Python and relies on 3rd-party HDL simulators
+to do the actual test execution.
+
+To install VUnit itself:
+
+```
+pip3 install vunit_hdl
+```
+
+## Install ModelSim-Intel
 
 VUnit requires a compatible HDL simulator installed and available in the PATH.
 The free version of ModelSim-Intel seems to work well and is available here:
 
-[Intel ModelSim] https://www.intel.com/content/www/us/en/software-kit/750666/modelsim-intel-fpgas-standard-edition-software-version-20-1-1.html)
+https://www.intel.com/content/www/us/en/software-kit/750666/modelsim-intel-fpgas-standard-edition-software-version-20-1-1.html
 
 Install ModelSim and then add the `modelsim_ase/bin` folder to your path.
 Alternatively, you can export the path in VUNIT_MODELSIM_PATH for VUnit.
@@ -26,13 +38,9 @@ sudo dpkg --add-architecture i386
 sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386 libxext6:i386 libxft2:i386
 ```
 
-## Install VUnit
-
-```
-pip3 install vunit
-```
-
 ## Run VUnit testbenches
+
+`run_vunit.py` finds and runs all testbenches in the `src/` folder.
 
 ```
 python3 run_vunit.py

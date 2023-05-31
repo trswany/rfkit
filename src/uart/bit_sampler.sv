@@ -15,7 +15,7 @@
 //
 // Outputs:
 // * estimated_data: estimated value of the received data bit
-// * sample_clk: short, 1-cycle pulse with rising edge at each decision time
+// * estimate_ready: 1-cycle pulse at the time that the estimate is taken.
 //
 // The bit sampler is designed to be held in reset until a start bit is
 // detected. When the start bit is detected, the reset should be released
@@ -29,7 +29,7 @@
 
 module bit_sampler (
   output logic estimated_data,
-  output logic sample_clk,
+  output logic estimate_ready,
   input clk,
   input rst,
   input raw_data
@@ -41,7 +41,7 @@ module bit_sampler (
   always @(posedge clk) begin
     if (rst) begin
       estimated_data <= 1'b0;
-      sample_clk <= 1'b0;
+      estimate_ready <= 1'b0;
       buffer <= 5'b0;
       divider_counter <= 4'b0;
       delay_line <= 2'b0;
@@ -58,12 +58,12 @@ module bit_sampler (
       // need to way for 2 extra samples to come in.
       delay_line <= {delay_line[0], (divider_counter == 15)};
 
-      // Take the estimate and pulse the sample_clk.
+      // Take the estimate and pulse estimate_ready.
       if (delay_line[1]) begin
         estimated_data <= ($countbits(buffer, '1) >= 3);
-        sample_clk <= 1'b1;
+        estimate_ready <= 1'b1;
       end else begin
-        sample_clk <= 1'b0;
+        estimate_ready <= 1'b0;
       end
     end
   end

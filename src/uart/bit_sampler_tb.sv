@@ -15,10 +15,10 @@ module bit_sampler_tb();
   logic rst = 1'b0;
   logic raw_data = 1'b0;
   logic estimated_data;
-  logic sample_clk;
+  logic estimate_ready;
   bit_sampler dut(
     .estimated_data(estimated_data),
-    .sample_clk(sample_clk),
+    .estimate_ready(estimate_ready),
     .clk(clk),
     .rst(rst),
     .raw_data(raw_data)
@@ -42,50 +42,50 @@ module bit_sampler_tb();
       repeat (20) begin
         #10;
         `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
-        `CHECK_EQUAL(sample_clk, 1'b0, "expected low sample_clk");
+        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
       raw_data <= 1'b1;
       repeat (20) begin
         #10;
         `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
-        `CHECK_EQUAL(sample_clk, 1'b0, "expected low sample_clk");
+        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
     end // end of test case
 
-    `TEST_CASE("generates_sample_clk") begin
+    `TEST_CASE("generates_estimate_ready") begin
       rst <= 1'b0;
       // Nothing should happen for the first 17 pulses.
       repeat (17) begin
         #10;
-        `CHECK_EQUAL(sample_clk, 1'b0, "expected low sample_clk");
+        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
 
-      // After the 18th pulse, we should get a brief blip of the sample_clk.
+      // After the 18th pulse, we should get a brief blip of the estimate_ready.
       #10;
-      `CHECK_EQUAL(sample_clk, 1'b1, "expected high sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
 
-      // The sample_clk should go back to 0 after the 19th clk pulse and stay 
+      // The estimate_ready should go back to 0 after the 19th clk pulse and stay 
       // low for a total of 15 pulses.
       repeat (15) begin
         #10;
-        `CHECK_EQUAL(sample_clk, 1'b0, "expected low sample_clk");
+        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
 
       // It should go high again for the 16th clock pulse.
       #10;
-      `CHECK_EQUAL(sample_clk, 1'b1, "expected high sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
 
       // And then stay low for 15 more pulses.
       repeat (15) begin
         #10;
-        `CHECK_EQUAL(sample_clk, 1'b0, "expected low sample_clk");
+        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
 
       // Check for one more short pulse.
       #10;
-      `CHECK_EQUAL(sample_clk, 1'b1, "expected high sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
       #10;
-      `CHECK_EQUAL(sample_clk, 1'b0, "expected low sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
     end // end of test case
 
     `TEST_CASE("estimates_zeros") begin
@@ -115,7 +115,7 @@ module bit_sampler_tb();
       raw_data <= 1'b1;
       #20;  // Wait for 2 clock pulses.
       `CHECK_EQUAL(estimated_data, 1'b1, "expected high estimated_data");
-      `CHECK_EQUAL(sample_clk, 1'b1, "expected high sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
     end // end of test case
 
     `TEST_CASE("estimates_multiple_bits") begin
@@ -131,7 +131,7 @@ module bit_sampler_tb();
       // After the 18th pulse, the bit-sampler will make its decision and
       // generate the sample clk pulse. Change the raw_data.
       #10;
-      `CHECK_EQUAL(sample_clk, 1'b1, "expected high sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
       `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
       raw_data <= 1'b1;
 
@@ -144,7 +144,7 @@ module bit_sampler_tb();
       // After the next pulse, the bit-sampler will make its decision and
       // generate the sample clk pulse. Change the raw_data.
       #10;
-      `CHECK_EQUAL(sample_clk, 1'b1, "expected high sample_clk");
+      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
       `CHECK_EQUAL(estimated_data, 1'b1, "expected high estimated_data");
       raw_data <= 1'b0;
 

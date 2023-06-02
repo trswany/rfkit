@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 //------------------------------------------------------------------------------
 
-// clock_divider divides a clock by an integer factor.
+// clock_divider divides a clock by an even integer factor.
 //
 // Warning: this should not be used to generate general clock signals. Instead,
 // please use the clocking peripherals provided by the part you're using and
@@ -15,13 +15,16 @@ module clock_divider #(parameter DIVISOR = 16)(
   input rst,
   input clk_in
 );
-  logic [$clog2(DIVISOR)-1:0] count;
+  initial begin
+    assert (DIVISOR % 2 == 0) else $fatal("Error: DIVISOR must be even");
+  end
+  logic [$clog2(DIVISOR/2)-1:0] count;
   always @(posedge clk_in) begin
     if (rst) begin
       clk_out <= 1'b0;
       count <= 0;
     end else begin
-      if(count == DIVISOR - 1) begin
+      if(count == DIVISOR/2 - 1) begin
         clk_out <= ~clk_out;
         count <= 0;
       end else begin

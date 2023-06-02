@@ -13,10 +13,17 @@
 module clock_divider_tb();
   logic rst = 1'b0;
   logic clk_in = 1'b0;
-  logic clk_out;
+  logic clk_out_2;
+  logic clk_out_16;
 
-  clock_divider #(.DIVISOR(4)) dut(
-    .clk_out(clk_out),
+  clock_divider #(.DIVISOR(2)) dut_2(
+    .clk_out(clk_out_2),
+    .rst(rst),
+    .clk_in(clk_in)
+  );
+
+  clock_divider #(.DIVISOR(16)) dut_16(
+    .clk_out(clk_out_16),
     .rst(rst),
     .clk_in(clk_in)
   );
@@ -33,14 +40,23 @@ module clock_divider_tb();
       rst <= 1'b0;
     end
 
-    `TEST_CASE("divides_clock") begin
+    `TEST_CASE("divides_clock_by_2") begin
       repeat (10) begin
-        repeat(4) begin
-          `CHECK_EQUAL(clk_out, 1'b0);
+        `CHECK_EQUAL(clk_out_2, 1'b0);
+        #10;
+        `CHECK_EQUAL(clk_out_2, 1'b1);
+        #10;
+      end
+    end // end of test case
+
+    `TEST_CASE("divides_clock_by_16") begin
+      repeat (10) begin
+        repeat(8) begin
+          `CHECK_EQUAL(clk_out_16, 1'b0);
           #10;
         end
-          repeat(4) begin
-          `CHECK_EQUAL(clk_out, 1'b1);
+          repeat(8) begin
+          `CHECK_EQUAL(clk_out_16, 1'b1);
           #10;
         end
       end

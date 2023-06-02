@@ -16,13 +16,21 @@ module uart_rx_tb();
   logic raw_data = 1'b1;
   logic [7:0] data;
   logic data_valid;
+  wire sample_trigger;
 
   uart_rx dut(
     .data(data),
     .data_valid(data_valid),
     .clk(clk),
+    .sample_trigger(sample_trigger),
     .rst(rst),
     .raw_data(raw_data)
+  );
+
+  pulse_generator #(.INTERVAL(10)) pulse_generator(
+    .out(sample_trigger),
+    .rst(rst),
+    .clk(clk)
   );
 
   logic [255:0] sample_stream = 256'b0;
@@ -38,36 +46,38 @@ module uart_rx_tb();
       // Reset the DUT and set the data signal to the idle state.
       raw_data <= 1'b1;
       rst <= 1'b1;
-      #10;
+      @(posedge clk);
       rst <= 1'b0;
-      #10;
+      @(posedge clk);
     end
 
     `TEST_CASE("stays_in_reset") begin
       rst <= 1'b1;  // Keep the rst signal asserted.
-      repeat (300) begin
-        #10;
+      repeat (3000) begin
+        @(posedge clk);
         `CHECK_EQUAL(data_valid, 1'b0, "expected low data_valid");
       end
       data <= 1'b0;
-      repeat (300) begin
-        #10;
+      repeat (3000) begin
+        @(posedge clk);
         `CHECK_EQUAL(data_valid, 1'b0, "expected low data_valid");
       end
     end // end of test case
 
     `TEST_CASE("waits_for_start_bit") begin
       // Make sure data_valid stays low until we get a real byte.
-      repeat (1000) begin
-        #10;
+      repeat (10000) begin
+        @(posedge clk);
         `CHECK_EQUAL(data_valid, 1'b0);
       end
     end // end of test case
 
     `TEST_CASE("receives_perfect_byte") begin
-      // Run a few cycles to let the start-bit detector warm up.
+      int sample_index;
+
+      // Run a few samples to let the start-bit detector warm up.
       repeat (10) begin
-        #10;
+        @(posedge sample_trigger);
       end
       // Build a stream of a start bit 0'b0, 8'b11010101, and a stop bit 0'b1.
       sample_stream <= {
@@ -82,9 +92,13 @@ module uart_rx_tb();
         16'b1111_1111_1111_1111,
         16'b1111_1111_1111_1111   // stop bit
       };
-      for (int i = 159; i >= 0; i--) begin
-        #10;
-        raw_data <= sample_stream[i];
+      sample_index = 159;
+      while (sample_index >= 0) begin
+        @(posedge clk);
+        if (sample_trigger) begin
+          raw_data <= sample_stream[sample_index];
+          sample_index--;
+        end
         // We expect to receive the data halfway through the stop bit.
         if (data_valid == 1'b1) begin
           got_byte <= data;
@@ -95,9 +109,11 @@ module uart_rx_tb();
     end // end of test case
 
     `TEST_CASE("receives_two_perfect_bytes") begin
+      int sample_index;
+
       // Run a few cycles to let the start-bit detector warm up.
       repeat (10) begin
-        #10;
+        @(posedge sample_trigger);
       end
       // Build a stream of a start bit 0'b0, 8'b11010101, and a stop bit 0'b1.
       sample_stream <= {
@@ -112,9 +128,13 @@ module uart_rx_tb();
         16'b1111_1111_1111_1111,
         16'b1111_1111_1111_1111   // stop bit
       };
-      for (int i = 159; i >= 0; i--) begin
-        #10;
-        raw_data <= sample_stream[i];
+      sample_index = 159;
+      while (sample_index >= 0) begin
+        @(posedge clk);
+        if (sample_trigger) begin
+          raw_data <= sample_stream[sample_index];
+          sample_index--;
+        end
         // We expect to receive the data halfway through the stop bit.
         if (data_valid == 1'b1) begin
           got_byte <= data;
@@ -140,9 +160,13 @@ module uart_rx_tb();
         16'b1111_1111_1111_1111,
         16'b1111_1111_1111_1111   // stop bit
       };
-      for (int i = 159; i >= 0; i--) begin
-        #10;
-        raw_data <= sample_stream[i];
+      sample_index = 159;
+      while (sample_index >= 0) begin
+        @(posedge clk);
+        if (sample_trigger) begin
+          raw_data <= sample_stream[sample_index];
+          sample_index--;
+        end
         // We expect to receive the data halfway through the stop bit.
         if (data_valid == 1'b1) begin
           got_byte <= data;
@@ -153,9 +177,11 @@ module uart_rx_tb();
     end // end of test case
 
     `TEST_CASE("rejects_incorrect_stop_bit") begin
+      int sample_index;
+
       // Run a few cycles to let the start-bit detector warm up.
       repeat (10) begin
-        #10;
+        @(posedge sample_trigger);
       end
       // Build a stream of a start bit 0'b0, some bits, and a bad stop bit (0'b0).
       sample_stream <= {
@@ -170,23 +196,29 @@ module uart_rx_tb();
         16'b1111_1111_1111_1111,
         16'b0000_0000_0000_0000   // stop bit
       };
-      for (int i = 159; i >= 0; i--) begin
-        #10;
-        raw_data <= sample_stream[i];
+      sample_index = 159;
+      while (sample_index >= 0) begin
+        @(posedge clk);
+        if (sample_trigger) begin
+          raw_data <= sample_stream[sample_index];
+          sample_index--;
+        end
         `CHECK_EQUAL(data_valid, 1'b0);
       end
       raw_data <= 01'b1;
       // Make sure that the data_ready never goes high.
-      repeat (200) begin
-        #10;
+      repeat (2000) begin
+        @(posedge clk);
         `CHECK_EQUAL(data_valid, 1'b0);
       end
     end // end of test case
 
     `TEST_CASE("verify_sampling_point") begin
+      int sample_index;
+
       // Run a few cycles to let the start-bit detector warm up.
       repeat (10) begin
-        #10;
+        @(posedge sample_trigger);
       end
       // Build a stream of a start bit 0'b0, 8'b11010101, and a stop bit 0'b1.
       // Make these bits malformed so we verify that the detector is sampling
@@ -203,9 +235,13 @@ module uart_rx_tb();
         16'b0000_0011_1100_0000,  // 1
         16'b1111_1111_1111_1111   // stop bit
       };
-      for (int i = 159; i >= 0; i--) begin
-        #10;
-        raw_data <= sample_stream[i];
+      sample_index = 159;
+      while (sample_index >= 0) begin
+        @(posedge clk);
+        if (sample_trigger) begin
+          raw_data <= sample_stream[sample_index];
+          sample_index--;
+        end
         // We expect to receive the data halfway through the stop bit.
         if (data_valid == 1'b1) begin
           got_byte <= data;
@@ -216,6 +252,6 @@ module uart_rx_tb();
     end // end of test case
   end
 
-  `WATCHDOG(20000ns);
+  `WATCHDOG(200000ns);
 endmodule
 

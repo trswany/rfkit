@@ -16,12 +16,21 @@ module bit_sampler_tb();
   logic raw_data = 1'b0;
   logic estimated_data;
   logic estimate_ready;
+  wire sample_trigger;
+
   bit_sampler dut(
     .estimated_data(estimated_data),
     .estimate_ready(estimate_ready),
     .clk(clk),
+    .sample_trigger(sample_trigger),
     .rst(rst),
     .raw_data(raw_data)
+  );
+
+  pulse_generator #(.INTERVAL(10)) pulse_generator(
+    .out(sample_trigger),
+    .rst(rst),
+    .clk(clk)
   );
 
   always begin
@@ -34,128 +43,181 @@ module bit_sampler_tb();
       // Reset the DUT and set the incoming data signal to 0.
       rst <= 1'b1;
       raw_data <= 1'b0;
-      #10;
+      @(posedge clk);
+      rst <= 1'b0;
+      @(posedge clk);
     end
 
     `TEST_CASE("stays_in_reset") begin
       rst <= 1'b1;  // Keep the rst signal asserted.
-      repeat (20) begin
-        #10;
+      repeat (200) begin
+        @(posedge clk)
         `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
         `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
       raw_data <= 1'b1;
-      repeat (20) begin
-        #10;
+      repeat (200) begin
+        @(posedge clk)
         `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
         `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
       end
     end // end of test case
 
     `TEST_CASE("generates_estimate_ready") begin
-      rst <= 1'b0;
-      // Nothing should happen for the first 17 pulses.
-      repeat (17) begin
-        #10;
-        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
+      int num_samples;
+
+      // Nothing should happen until we get 18 samples.
+      num_samples = 0;
+      while (num_samples < 18) begin
+        @(posedge clk)
+        if (sample_trigger) begin
+          num_samples++;
+        end
+        `CHECK_EQUAL(estimate_ready, 1'b0);
       end
 
       // After the 18th pulse, we should get a brief blip of the estimate_ready.
-      #10;
-      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
+      @(posedge clk);
+      `CHECK_EQUAL(estimate_ready, 1'b1);
 
-      // The estimate_ready should go back to 0 after the 19th clk pulse and stay 
-      // low for a total of 15 pulses.
-      repeat (15) begin
-        #10;
-        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
+      // estimate_ready should go back to 0 for a total of 16 samples.
+      num_samples = 0;
+      while (num_samples < 16) begin
+        @(posedge clk)
+        if (sample_trigger) begin
+          num_samples++;
+        end
+        `CHECK_EQUAL(estimate_ready, 1'b0);
       end
 
-      // It should go high again for the 16th clock pulse.
-      #10;
-      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
+      // After the 16th pulse, we should get a brief blip of the estimate_ready.
+      @(posedge clk)
+      `CHECK_EQUAL(estimate_ready, 1'b1);
 
-      // And then stay low for 15 more pulses.
-      repeat (15) begin
-        #10;
-        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
+      // And then stay low for 16 more samples.
+      num_samples = 0;
+      while (num_samples < 16) begin
+        @(posedge clk)
+        if (sample_trigger) begin
+          num_samples++;
+        end
+        `CHECK_EQUAL(estimate_ready, 1'b0);
       end
 
       // Check for one more short pulse.
-      #10;
-      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
-      #10;
-      `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
+      // After the 16th pulse, we should get a brief blip of the estimate_ready.
+      @(posedge clk)
+      `CHECK_EQUAL(estimate_ready, 1'b1);
+      @(posedge clk)
+      `CHECK_EQUAL(estimate_ready, 1'b0);
     end // end of test case
 
     `TEST_CASE("estimates_zeros") begin
-      rst <= 1'b0;
-      estimated_data <= 1'b0;
-      repeat (150) begin
-        #10;
-        `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
+      raw_data <= 1'b0;
+      repeat (1500) begin
+        @(posedge clk)
+        `CHECK_EQUAL(estimated_data, 1'b0);
       end
     end // end of test case
 
     `TEST_CASE("estimates_ones") begin
-      rst <= 1'b0;
-      estimated_data <= 1'b1;
-      repeat (150) begin
-        #10;
-        `CHECK_EQUAL(estimated_data, 1'b1, "expected high estimated_data");
+      int num_samples;
+      raw_data <= 1'b1;
+
+      // Nothing should happen until we get 18 samples.
+      num_samples = 0;
+      while (num_samples < 18) begin
+        @(posedge clk)
+        if (sample_trigger) begin
+          num_samples++;
+        end
+        `CHECK_EQUAL(estimate_ready, 1'b0);
+      end
+
+      // After the 18th pulse, estimated_data should go to 1.
+      @(posedge clk);
+      `CHECK_EQUAL(estimated_data, 1'b1);
+      repeat (1500) begin
+        @(posedge clk)
+        `CHECK_EQUAL(estimated_data, 1'b1);
       end
     end // end of test case
 
     `TEST_CASE("estimates_one_with_noise") begin
-      rst <= 1'b0;
+      // Apply 14 pulses of 1.
       raw_data <= 1'b1;
-      #140;  // Wait for 14 clock pulses.
-      raw_data <= 1'b0;  // Set raw_data to 0 to simulate noise.
-      #20;  // Wait for 2 clock pulses.
+      for (int i = 0; i < 14; i++) begin
+        @(posedge sample_trigger);
+      end
+
+      // Set raw_data to 0 to simulate noise for 2 samples.
+      raw_data <= 1'b0;
+      for (int i = 0; i < 2; i++) begin
+        @(posedge sample_trigger);
+      end
+
+      // Apply 2 pulses of 1.
       raw_data <= 1'b1;
-      #20;  // Wait for 2 clock pulses.
-      `CHECK_EQUAL(estimated_data, 1'b1, "expected high estimated_data");
-      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
+      for (int i = 0; i < 2; i++) begin
+        @(posedge sample_trigger);
+      end
+
+      // After two more clocks, the data should be available.
+      @(posedge clk);
+      @(posedge clk);
+      `CHECK_EQUAL(estimated_data, 1'b1);
+      `CHECK_EQUAL(estimate_ready, 1'b1);
     end // end of test case
 
     `TEST_CASE("estimates_multiple_bits") begin
-      rst <= 1'b0;
+      // Apply 18 bits of 0, verify the result.
       raw_data <= 1'b0;
-
-      // Wait 17 clock pulses and verify the estimated bit doesn't change.
-      repeat (17) begin
-        #10;
-        `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
+      for (int i = 0; i < 18; i++) begin
+        @(posedge sample_trigger);
       end
+      @(posedge clk);
+      @(posedge clk);
+      `CHECK_EQUAL(estimate_ready, 1'b1);
+      `CHECK_EQUAL(estimated_data, 1'b0);
 
-      // After the 18th pulse, the bit-sampler will make its decision and
-      // generate the sample clk pulse. Change the raw_data.
-      #10;
-      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
-      `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
+      // Apply 16 bits of 1, verify the result.
       raw_data <= 1'b1;
-
-      // Wait 15 clock pulses and verify the estimated bit doesn't change.
-      repeat (15) begin
-        #10;
-        `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
+      for (int i = 0; i < 16; i++) begin
+        @(posedge sample_trigger);
       end
+      @(posedge clk);
+      @(posedge clk);
+      `CHECK_EQUAL(estimate_ready, 1'b1);
+      `CHECK_EQUAL(estimated_data, 1'b1);
+    end // end of test case
 
-      // After the next pulse, the bit-sampler will make its decision and
-      // generate the sample clk pulse. Change the raw_data.
-      #10;
-      `CHECK_EQUAL(estimate_ready, 1'b1, "expected high estimate_ready");
-      `CHECK_EQUAL(estimated_data, 1'b1, "expected high estimated_data");
+    `TEST_CASE("estimate_holds_after_ready_pulse") begin
+      int num_samples;
+
+      // Apply 18 bits of 0, verify the result.
+      raw_data <= 1'b1;
+      for (int i = 0; i < 18; i++) begin
+        @(posedge sample_trigger);
+      end
+      @(posedge clk);
+      @(posedge clk);
+      `CHECK_EQUAL(estimate_ready, 1'b1);
+      `CHECK_EQUAL(estimated_data, 1'b1);
+
+      // Change the input data and let things run for a few more samples. The
+      // estimate shouldn't change (because we haven't collected 16 samples)
       raw_data <= 1'b0;
-
-      // Wait 15 clock pulses and verify the estimated bit doesn't change.
-      repeat (15) begin
-        #10;
-        `CHECK_EQUAL(estimated_data, 1'b1, "expected high estimated_data");
+      num_samples = 0;
+      while (num_samples < 10) begin
+        @(posedge clk)
+        if (sample_trigger) begin
+          num_samples++;
+        end
+        `CHECK_EQUAL(estimated_data, 1'b1);
       end
     end // end of test case
   end
 
-  `WATCHDOG(2000ns);
+  `WATCHDOG(50000ns);
 endmodule
 

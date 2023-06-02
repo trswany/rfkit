@@ -6,7 +6,8 @@
 // uart_rx is a very simple, statically-configured uart receiver.
 //
 // Inputs:
-// * clk: clock at 16x the nominal data bitrate
+// * clk: clock that runs much faster than the UART bitrate.
+// * sample_trigger: 1-clk pulse that tells the uart when to sample
 // * rst: synchronous reset for the detector
 // * serial_data: raw and asynchronous RX data; will be sampled
 //
@@ -21,6 +22,7 @@ module uart_rx (
   output logic [7:0] data,
   output logic data_valid,
   input clk,
+  input sample_trigger,
   input rst,
   input raw_data
 );
@@ -32,6 +34,7 @@ module uart_rx (
   start_bit_detector start_bit_detector(
     .start_bit_detected(start_bit_detected),
     .clk(clk),
+    .sample_trigger(sample_trigger),
     .rst(rst_start_bit_detector),
     .data(raw_data)
   );
@@ -40,6 +43,7 @@ module uart_rx (
     .estimated_data(estimated_bit),
     .estimate_ready(estimated_bit_ready),
     .clk(clk),
+    .sample_trigger(sample_trigger),
     .rst(!start_bit_detected),
     .raw_data(raw_data)
   );

@@ -40,24 +40,23 @@ module uart_tx (
     if (rst) begin
       serial_data <= 1'b1;
       ready <= 1'b0;
-      buffer <= {1'b0, data[7:0], 1'b0};
+      buffer <= {1'b0, data[7:0], 1'b1};
       num_samples_remaining <= 8'b0;
     end else begin
       // Only accept a new byte to transmit if we're not busy.
       if (start && ready) begin
-        buffer <= {1'b0, data[7:0], 1'b0};
+        buffer <= {1'b0, data[7:0], 1'b1};
         num_samples_remaining <= 8'd160;
+        ready <= 1'b0;
+      end else if (num_samples_remaining > 0) begin
+        ready <= 1'b0;
+      end else begin
+        ready <= 1'b1;
       end
 
       if (sample_trigger && num_samples_remaining > 0) begin
         serial_data <= buffer[((num_samples_remaining - 1) >> 4)];
         num_samples_remaining <= num_samples_remaining - 1;
-      end
-
-      if (start || num_samples_remaining > 0) begin
-        ready <= 1'b0;
-      end else begin
-        ready <= 1'b1;
       end
 
       if (num_samples_remaining == 0) begin

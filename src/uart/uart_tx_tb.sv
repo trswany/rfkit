@@ -8,6 +8,18 @@
 // Note: VUnit automatically adds the include path for vunit_defines.svh.
 `include "vunit_defines.svh"
 
+/*
+
+
+        ready <= 1'b0;
+      end else if (num_samples_remaining > 0) begin
+        ready <= 1'b0;
+      end else begin
+        ready <= 1'b1;
+
+*/
+
+
 `timescale 1ns/1ps
 
 module uart_tx_tb();
@@ -89,7 +101,7 @@ module uart_tx_tb();
         16'b1111_1111_1111_1111,
         16'b0000_0000_0000_0000,
         16'b1111_1111_1111_1111,
-        16'b0000_0000_0000_0000   // stop bit
+        16'b1111_1111_1111_1111   // stop bit
       };
 
       // Kick off transmission
@@ -140,7 +152,7 @@ module uart_tx_tb();
         16'b1111_1111_1111_1111,
         16'b0000_0000_0000_0000,
         16'b1111_1111_1111_1111,
-        16'b0000_0000_0000_0000   // stop bit
+        16'b1111_1111_1111_1111   // stop bit
       };
 
       // Kick off transmission
@@ -182,7 +194,7 @@ module uart_tx_tb();
         16'b1111_1111_1111_1111,
         16'b0000_0000_0000_0000,
         16'b1111_1111_1111_1111,
-        16'b0000_0000_0000_0000   // stop bit
+        16'b1111_1111_1111_1111   // stop bit
       };
 
       // Kick off transmission
@@ -238,7 +250,7 @@ module uart_tx_tb();
         16'b1111_1111_1111_1111,
         16'b0000_0000_0000_0000,
         16'b1111_1111_1111_1111,
-        16'b0000_0000_0000_0000   // stop bit
+        16'b1111_1111_1111_1111   // stop bit
       };
 
       // Kick off transmission
@@ -283,6 +295,64 @@ module uart_tx_tb();
         @(posedge clk);
         `CHECK_EQUAL(ready, 0'b1);
         `CHECK_EQUAL(serial_data, 0'b1);
+      end
+    end // end of test case
+
+    `TEST_CASE("send_repeated_bytes") begin
+      int sample_index;
+
+      // Run a few samples to let things warm up.
+      repeat (10) begin
+        @(posedge sample_trigger);
+      end
+
+      // Build a stream of a start bit 0'b0, some bits, and a stop bit (0'b0).
+      want_stream <= {
+        16'b0000_0000_0000_0000,  // start bit
+        16'b1111_1111_1111_1111,
+        16'b1111_1111_1111_1111,
+        16'b0000_0000_0000_0000,
+        16'b1111_1111_1111_1111,
+        16'b0000_0000_0000_0000,
+        16'b1111_1111_1111_1111,
+        16'b0000_0000_0000_0000,
+        16'b1111_1111_1111_1111,
+        16'b1111_1111_1111_1111   // stop bit
+      };
+
+      // Kick off transmission
+      @(posedge sample_trigger);
+      @(posedge clk);
+      data <= 8'b1101_0101;
+      start <= 1'b1;
+      @(posedge clk);
+      @(posedge clk);
+
+      // Verify the output sample stream.
+      sample_index = 159;
+      @(posedge sample_trigger);
+      @(posedge clk);
+      while (sample_index > 0) begin
+        @(posedge clk);
+        `CHECK_EQUAL(ready, 0'b0);
+        `CHECK_EQUAL(serial_data, want_stream[sample_index]);
+        if (sample_trigger) begin
+          sample_index--;
+        end
+      end
+
+      // Verify the output sample stream.
+      sample_index = 159;
+      @(posedge sample_trigger);
+      @(posedge clk);
+      while (sample_index > 0) begin
+        $display ("time=%0t, serial_data=%0b, sample_index=%0d", $time, serial_data, sample_index);
+        @(posedge clk);
+        `CHECK_EQUAL(ready, 0'b0);
+        `CHECK_EQUAL(serial_data, want_stream[sample_index]);
+        if (sample_trigger) begin
+          sample_index--;
+        end
       end
     end // end of test case
   end

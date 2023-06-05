@@ -11,7 +11,7 @@
 
 module demo_inverter (output logic out, input in);
   always_comb begin
-    out <= in ? 1'b0 : 1'b1;
+    out = in ? 1'b0 : 1'b1;
   end
 endmodule
 

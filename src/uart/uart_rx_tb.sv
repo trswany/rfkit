@@ -27,10 +27,10 @@ module uart_rx_tb();
     .raw_data(raw_data)
   );
 
-  pulse_generator #(.INTERVAL(10)) pulse_generator(
-    .out(sample_trigger),
+  pulse_generator #(.Period(10)) pulse_generator(
+    .clk(clk),
     .rst(rst),
-    .clk(clk)
+    .pulse(sample_trigger)
   );
 
   logic [255:0] sample_stream = 256'b0;

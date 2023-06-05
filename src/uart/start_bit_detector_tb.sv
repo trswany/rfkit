@@ -13,7 +13,7 @@
 module start_bit_detector_tb();
   logic clk = 1'b0;
   logic rst = 1'b0;
-  logic data = 1'b1;
+  logic raw_data = 1'b1;
   logic start_bit_detected;
   wire sample_trigger;
 
@@ -22,7 +22,7 @@ module start_bit_detector_tb();
     .clk(clk),
     .rst(rst),
     .sample_trigger(sample_trigger),
-    .data(data)
+    .raw_data(raw_data)
   );
 
   always begin
@@ -30,16 +30,16 @@ module start_bit_detector_tb();
     clk <= !clk;
   end
 
-  pulse_generator #(.INTERVAL(10)) pulse_generator(
-    .out(sample_trigger),
+  pulse_generator #(.Period(10)) pulse_generator(
+    .clk(clk),
     .rst(rst),
-    .clk(clk)
+    .pulse(sample_trigger)
   );
 
   `TEST_SUITE begin
     `TEST_SUITE_SETUP begin
       // Reset the DUT and set the data signal to the idle state.
-      data <= 1'b1;
+      raw_data <= 1'b1;
       rst <= 1'b1;
       @(posedge clk);
       rst <= 1'b0;
@@ -52,7 +52,7 @@ module start_bit_detector_tb();
         @(posedge clk)
         `CHECK_EQUAL(start_bit_detected, 1'b0);
       end
-      data <= 1'b0;
+      raw_data <= 1'b0;
       repeat (200) begin
         @(posedge clk)
         `CHECK_EQUAL(start_bit_detected, 1'b0);
@@ -64,7 +64,7 @@ module start_bit_detector_tb();
       @(posedge sample_trigger);
 
       // Apply the stop bit for 4 sample clocks.
-      data <= 1'b0;
+      raw_data <= 1'b0;
       num_samples = 0;
       while (num_samples < 4) begin
         @(posedge clk)
@@ -76,7 +76,7 @@ module start_bit_detector_tb();
 
       // Stop applying the stop bit and wait another 4 sample clocks.
       @(posedge clk)
-      data <= 1'b1;
+      raw_data <= 1'b1;
       num_samples = 0;
       while (num_samples < 4) begin
         @(posedge clk)
@@ -99,7 +99,7 @@ module start_bit_detector_tb();
       @(posedge sample_trigger);
 
       // Apply the stop bit for 8 sample clocks.
-      data <= 1'b0;
+      raw_data <= 1'b0;
       num_samples = 0;
       while (num_samples < 8) begin
         @(posedge clk)
@@ -122,7 +122,7 @@ module start_bit_detector_tb();
       @(posedge sample_trigger);
 
       // the DUT should reject spurious blips <= 3 clk periods long.
-      data <= 1'b0;
+      raw_data <= 1'b0;
       num_samples = 0;
       while (num_samples < 3) begin
         @(posedge clk)
@@ -131,7 +131,7 @@ module start_bit_detector_tb();
         end
         `CHECK_EQUAL(start_bit_detected, 1'b0);
       end
-      data <= 1'b1;
+      raw_data <= 1'b1;
       repeat (500) begin
         @(posedge clk)
         `CHECK_EQUAL(start_bit_detected, 1'b0);
@@ -143,7 +143,7 @@ module start_bit_detector_tb();
       @(posedge sample_trigger);
 
       // Apply a spurious pulse.
-      data <= 1'b0;
+      raw_data <= 1'b0;
       num_samples = 0;
       while (num_samples < 3) begin
         @(posedge clk)
@@ -152,7 +152,7 @@ module start_bit_detector_tb();
         end
         `CHECK_EQUAL(start_bit_detected, 1'b0);
       end
-      data <= 1'b1;
+      raw_data <= 1'b1;
       num_samples = 0;
       while (num_samples < 10) begin
         @(posedge clk)
@@ -164,7 +164,7 @@ module start_bit_detector_tb();
 
       // Apply a real start pulse for 8 sample times.
       @(posedge clk)
-      data <= 1'b0;
+      raw_data <= 1'b0;
       num_samples = 0;
       while (num_samples < 8) begin
         @(posedge clk)

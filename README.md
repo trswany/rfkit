@@ -2,6 +2,24 @@
 
 Verilog HDL modules for use in RF projects.
 
+## Install Verible
+
+This kit uses [Verible](https://github.com/chipsalliance/verible) for linting.
+Verible includes a language server, which can be used to integrate into VSCode.
+https://github.com/chipsalliance/verible/blob/master/verilog/tools/ls/README.md
+
+
+To install the released Verible VSCode extension, run this command from the
+quick-open menu (ctrl-p):
+
+```
+ext install CHIPSAlliance.verible
+```
+
+The rfkit project has a custom set of verible linter rules. To make verible up
+those rules, add the "--rules_config_search" argument. This can be done in the
+VSCode settings page for the Verible extension.
+
 ## Install VUnit
 
 This kit uses the [VUnit](https://vunit.github.io/) testing framework for all

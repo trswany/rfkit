@@ -13,17 +13,17 @@
 module pulse_generator_tb();
   logic rst = 1'b0;
   logic clk = 1'b0;
-  logic out_3;
-  logic out_16;
+  logic pulse_3;
+  logic pulse_16;
 
-  pulse_generator #(.INTERVAL(3)) dut_3(
-    .out(out_3),
+  pulse_generator #(.Period(3)) dut_3(
+    .pulse(pulse_3),
     .rst(rst),
     .clk(clk)
   );
 
-  pulse_generator #(.INTERVAL(16)) dut_16(
-    .out(out_16),
+  pulse_generator #(.Period(16)) dut_16(
+    .pulse(pulse_16),
     .rst(rst),
     .clk(clk)
   );
@@ -45,18 +45,18 @@ module pulse_generator_tb();
       rst <= 1'b1;  // Keep the rst signal asserted.
       repeat (100) begin
         #10
-        `CHECK_EQUAL(out_3, 1'b0);
-        `CHECK_EQUAL(out_16, 1'b0);
+        `CHECK_EQUAL(pulse_3, 1'b0);
+        `CHECK_EQUAL(pulse_16, 1'b0);
       end
     end // end of test case
 
     `TEST_CASE("generates_pulse_every_3") begin
       repeat (10) begin
         repeat(2) begin
-          `CHECK_EQUAL(out_3, 1'b0);
+          `CHECK_EQUAL(pulse_3, 1'b0);
           #10;
         end
-        `CHECK_EQUAL(out_3, 1'b1);
+        `CHECK_EQUAL(pulse_3, 1'b1);
         #10;
       end
     end // end of test case
@@ -64,10 +64,10 @@ module pulse_generator_tb();
     `TEST_CASE("generates_pulse_every_16") begin
       repeat (10) begin
         repeat(15) begin
-          `CHECK_EQUAL(out_16, 1'b0);
+          `CHECK_EQUAL(pulse_16, 1'b0);
           #10;
         end
-        `CHECK_EQUAL(out_16, 1'b1);
+        `CHECK_EQUAL(pulse_16, 1'b1);
         #10;
       end
     end // end of test case

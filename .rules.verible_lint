@@ -1,0 +1,10 @@
++banned-declared-name-patterns
++disable-statement
++endif-comment
++forbid-negative-array-dim
++mismatched-labels
++numeric-format-string-style
++one-module-per-file
++parameter-type-name-style
++proper-parameter-declaration
++signal-name-style

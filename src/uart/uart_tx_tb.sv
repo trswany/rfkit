@@ -41,10 +41,10 @@ module uart_tx_tb();
     .start(start)
   );
 
-  pulse_generator #(.INTERVAL(10)) pulse_generator(
-    .out(sample_trigger),
+  pulse_generator #(.Period(10)) pulse_generator(
+    .clk(clk),
     .rst(rst),
-    .clk(clk)
+    .pulse(sample_trigger)
   );
 
   logic [255:0] want_stream = 256'b0;

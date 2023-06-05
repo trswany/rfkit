@@ -14,23 +14,23 @@ module bit_sampler_tb();
   logic clk = 1'b0;
   logic rst = 1'b0;
   logic raw_data = 1'b0;
-  logic estimated_data;
+  logic estimated_bit;
   logic estimate_ready;
   wire sample_trigger;
 
   bit_sampler dut(
-    .estimated_data(estimated_data),
-    .estimate_ready(estimate_ready),
     .clk(clk),
-    .sample_trigger(sample_trigger),
     .rst(rst),
-    .raw_data(raw_data)
+    .sample_trigger(sample_trigger),
+    .raw_data(raw_data),
+    .estimated_bit(estimated_bit),
+    .estimate_ready(estimate_ready)
   );
 
-  pulse_generator #(.INTERVAL(10)) pulse_generator(
-    .out(sample_trigger),
+  pulse_generator #(.Period(10)) pulse_generator(
+    .clk(clk),
     .rst(rst),
-    .clk(clk)
+    .pulse(sample_trigger)
   );
 
   always begin
@@ -52,14 +52,14 @@ module bit_sampler_tb();
       rst <= 1'b1;  // Keep the rst signal asserted.
       repeat (200) begin
         @(posedge clk)
-        `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
-        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
+        `CHECK_EQUAL(estimated_bit, 1'b0);
+        `CHECK_EQUAL(estimate_ready, 1'b0);
       end
       raw_data <= 1'b1;
       repeat (200) begin
         @(posedge clk)
-        `CHECK_EQUAL(estimated_data, 1'b0, "expected low estimated_data");
-        `CHECK_EQUAL(estimate_ready, 1'b0, "expected low estimate_ready");
+        `CHECK_EQUAL(estimated_bit, 1'b0);
+        `CHECK_EQUAL(estimate_ready, 1'b0);
       end
     end // end of test case
 
@@ -116,7 +116,7 @@ module bit_sampler_tb();
       raw_data <= 1'b0;
       repeat (1500) begin
         @(posedge clk)
-        `CHECK_EQUAL(estimated_data, 1'b0);
+        `CHECK_EQUAL(estimated_bit, 1'b0);
       end
     end // end of test case
 
@@ -134,12 +134,12 @@ module bit_sampler_tb();
         `CHECK_EQUAL(estimate_ready, 1'b0);
       end
 
-      // After the 18th pulse, estimated_data should go to 1.
+      // After the 18th pulse, estimated_bit should go to 1.
       @(posedge clk);
-      `CHECK_EQUAL(estimated_data, 1'b1);
+      `CHECK_EQUAL(estimated_bit, 1'b1);
       repeat (1500) begin
         @(posedge clk)
-        `CHECK_EQUAL(estimated_data, 1'b1);
+        `CHECK_EQUAL(estimated_bit, 1'b1);
       end
     end // end of test case
 
@@ -165,7 +165,7 @@ module bit_sampler_tb();
       // After two more clocks, the data should be available.
       @(posedge clk);
       @(posedge clk);
-      `CHECK_EQUAL(estimated_data, 1'b1);
+      `CHECK_EQUAL(estimated_bit, 1'b1);
       `CHECK_EQUAL(estimate_ready, 1'b1);
     end // end of test case
 
@@ -178,7 +178,7 @@ module bit_sampler_tb();
       @(posedge clk);
       @(posedge clk);
       `CHECK_EQUAL(estimate_ready, 1'b1);
-      `CHECK_EQUAL(estimated_data, 1'b0);
+      `CHECK_EQUAL(estimated_bit, 1'b0);
 
       // Apply 16 bits of 1, verify the result.
       raw_data <= 1'b1;
@@ -188,7 +188,7 @@ module bit_sampler_tb();
       @(posedge clk);
       @(posedge clk);
       `CHECK_EQUAL(estimate_ready, 1'b1);
-      `CHECK_EQUAL(estimated_data, 1'b1);
+      `CHECK_EQUAL(estimated_bit, 1'b1);
     end // end of test case
 
     `TEST_CASE("estimate_holds_after_ready_pulse") begin
@@ -202,7 +202,7 @@ module bit_sampler_tb();
       @(posedge clk);
       @(posedge clk);
       `CHECK_EQUAL(estimate_ready, 1'b1);
-      `CHECK_EQUAL(estimated_data, 1'b1);
+      `CHECK_EQUAL(estimated_bit, 1'b1);
 
       // Change the input data and let things run for a few more samples. The
       // estimate shouldn't change (because we haven't collected 16 samples)
@@ -213,7 +213,7 @@ module bit_sampler_tb();
         if (sample_trigger) begin
           num_samples++;
         end
-        `CHECK_EQUAL(estimated_data, 1'b1);
+        `CHECK_EQUAL(estimated_bit, 1'b1);
       end
     end // end of test case
   end

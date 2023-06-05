@@ -5,9 +5,6 @@
 
 // bit_sampler samples and estimates the values of received bits.
 //
-// Goals:
-// * Reject spurious pulses
-//
 // Inputs:
 // * clk: clock that runs much faster than the UART bitrate.
 // * sample_trigger: 1-clk pulse that tells the sampler when to sample.
@@ -22,51 +19,54 @@
 // detected. When the start bit is detected, the reset should be released
 // at which point the bit sampler will start collecting and counting samples.
 //
-// When the sample count reaches 18, samples 14 through 18 (5 total) are
-// checked, and majority voting is used to determine the value of the estimated
-// bit. estimate_ready is then asserted for exactly one clock period.
+// Every 16 samples, the bit_sampler samples the last 5 bits and uses majority
+// voting to determine the value of the estimated bit. The estimate_ready
+// signal is asserted for one clock period as the estimated bit is presented.
+//
+// For the first bit (the first bit coming out of reset), an extra 2-sample
+// delay is inserted so that we take the 5 samples centered around the optimal
+// bit sampling time (halfway through the bit as referenced to the start time
+// given to us by the start_bit_detector). This constant 2-sample offset
+// applies to every bit, meaning that every bit is "sampled" at the optimum
+// half-bit sample point but that estimated bit is "ready" two samples later.
 
 `timescale 1ns/1ps
 
 module bit_sampler (
-  output logic estimated_data,
+  output logic estimated_bit,
   output logic estimate_ready,
-  input clk,
-  input sample_trigger,
-  input rst,
-  input raw_data
+  input logic clk,
+  input logic sample_trigger,
+  input logic rst,
+  input logic raw_data
 );
   logic [4:0] buffer;
-  logic [3:0] sample_count;
-  logic [1:0] delay_line;
+  logic [4:0] samples_needed;
+
+  localparam logic [4:0] SamplesPerBit = 5'd16;
+  localparam logic [1:0] TwoSampleDelay = 2'd2;
 
   always @(posedge clk) begin
     if (rst) begin
-      estimated_data <= 1'b0;
+      estimated_bit <= 1'b0;
       estimate_ready <= 1'b0;
       buffer <= 5'b0;
-      sample_count <= 4'b0;
-      delay_line <= 2'b0;
+      samples_needed <= (SamplesPerBit + TwoSampleDelay);
     end else begin
       if (sample_trigger) begin
         // Store the last 5 samples.
         buffer <= {buffer[3:0], raw_data};
-
-        // Count out every batch of 16 samples. This counter is exactly 4 bits
-        // wide, so it will roll over every 16 pulses.
-        sample_count <= sample_count + 1;
-
-        // Run the top bit of the counter through a 2-cycle delay. We want the
-        // sampler to look at 5 samples centered around the optimal sampling
-        // point, so we need to way for 2 extra samples to come in.
-        delay_line <= {delay_line[0], (sample_count == 15)};
-      end
-
-      // Take the estimate and pulse estimate_ready.
-      if (sample_trigger && delay_line[1]) begin
-        estimated_data <= ($countbits(buffer, '1) >= 3);
-        estimate_ready <= 1'b1;
+        if (samples_needed == 1) begin
+          // If this was the last sample we needed, generate the estimate.
+          estimated_bit <= ($countbits(buffer, '1) >= 3);
+          estimate_ready <= 1'b1;
+          samples_needed <= SamplesPerBit;
+        end else begin
+          // Otherwise, decrement the counter and keep going.
+          samples_needed <= samples_needed - 1;
+        end
       end else begin
+        // Only assert the estimate_ready signal for a single clock cycle.
         estimate_ready <= 1'b0;
       end
     end

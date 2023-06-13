@@ -3,31 +3,26 @@
 // SPDX-License-Identifier: MIT
 //------------------------------------------------------------------------------
 
-// bram is single-port, synchronous, write-first (transparent) block ram.
+// bram_dual_port is dual-port, synchronous block ram.
 //
-// Xilinx UG-627 ("XST User Guide for Virtex-4, Virtex-5, Spartan-3, and Newer
-// CPLD Devices") contains information about implementing block rams (see
-// section 3). This particular design is single-port with synchronous reads.
-//
-// Write-firt (or transparent) means that data is made available at the output
-// on the same clock cycle that it is clocked into the memory. This is
-// recommended by Xilinx to improve performance.
-//
-// There are also some helpful notes in WP231 "White Paper: Virtex-4,
-// Spartan-3/3L, and Spartan-3E FPGAs."
+// This implementation has read-first behavior in the case of a read-write
+// collision. This means that if address_in == address_out, data_out will get
+// the previously-stored value from that memory location instead of the
+// value of data_in.
 //
 // Note that this module intentionally leaves out any kind of reset. There is
 // no guarantees about the state of the block ram before it is written.
 
 `timescale 1ns/1ps
 
-module bram #(
+module bram_dual_port #(
   parameter int WordLengthBits = 8,
   parameter int NumWords = 128,
   parameter int AddressWidthBits = 7
 ) (
   input logic clk,
-  input logic [AddressWidthBits-1:0] address,
+  input logic [AddressWidthBits-1:0] address_in,
+  input logic [AddressWidthBits-1:0] address_out,
   input logic write_enable,
   input logic [WordLengthBits-1:0] data_in,
   output logic [WordLengthBits-1:0] data_out
@@ -42,10 +37,8 @@ module bram #(
 
   always @(posedge clk) begin
     if (write_enable) begin
-      data_out <= data_in;
-      ram[address] <= data_in;
-    end else begin
-      data_out <= ram[address];
+      ram[address_in] <= data_in;
     end
+    data_out <= ram[address_out];
   end
 endmodule

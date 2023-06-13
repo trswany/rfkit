@@ -12,12 +12,16 @@
 
 module bram_tb();
   logic clk = 1'b0;
-  logic [6:0] address = 8'b0000_0000;
+  logic [6:0] address = 7'b0000_0000;
   logic write_enable = 1'b0;
   logic [7:0] data_in = 8'b0000_0000;
   logic [7:0] data_out;
 
-  bram #(.WordLengthBits(8), .NumWords(128)) dut(
+  bram #(
+    .WordLengthBits(8),
+    .NumWords(128),
+    .AddressWidthBits(7)
+  ) dut(
     .clk(clk),
     .address(address),
     .write_enable(write_enable),

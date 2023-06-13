@@ -6,5 +6,10 @@
 # Simple script for testing vivado synthesis. Run with:
 # `vivado -mode batch -source vivado_synthesize_test.tcl`
 
-read_verilog bram_dual_port.sv
-synth_design -part xc7z010clg225-1 -top bram_dual_port
+read_verilog ring_buffer.sv
+read_verilog ../bram/bram_dual_port.sv
+
+# Generate errors for inferred latches.
+set_msg_config -id "Synth 8-327" -new_severity "ERROR"
+
+synth_design -part xc7z010clg225-1 -top ring_buffer

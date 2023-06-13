@@ -17,6 +17,7 @@ module ring_buffer_tb();
   logic [7:0] data_in = 8'b0000_0000;
   logic get = 1'b0;
   logic [7:0] data_out;
+  logic data_out_valid;
   logic buffer_empty;
   logic buffer_100p_full;
 
@@ -30,6 +31,7 @@ module ring_buffer_tb();
     .get(get),
     .data_in(data_in),
     .data_out(data_out),
+    .data_out_valid(data_out_valid),
     .buffer_empty(buffer_empty),
     .buffer_100p_full(buffer_100p_full)
   );
@@ -55,6 +57,7 @@ module ring_buffer_tb();
       put = 1'b1;
       repeat (10) begin
         `CHECK_EQUAL(buffer_empty, 1'b1);
+        `CHECK_EQUAL(data_out_valid, 1'b0)
         #10;
       end
     end // end of test case
@@ -62,9 +65,11 @@ module ring_buffer_tb();
     `TEST_CASE("one_cycle_read_latency") begin
       data_in = 8'b1010_1010;
       put = 1'b1;
+      get = 1'b1;
       #10;  //  Clock data into the buffer.
       #10;  //  Wait exactly one clock cycle.
       `CHECK_EQUAL(data_out, 8'b1010_1010);
+      `CHECK_EQUAL(data_out_valid, 1'b1);
     end // end of test case
 
     `TEST_CASE("fill_then_empty") begin
@@ -112,6 +117,7 @@ module ring_buffer_tb();
       data_in = 8'd0;
       #10  // Load a byte before we start getting.
       `CHECK_EQUAL(buffer_empty, 1'b0);
+      `CHECK_EQUAL(data_out_valid, 1'b0);
 
       get = 1'b1;  // We should be able to start getting after one clk.
       repeat (250) begin
@@ -119,6 +125,7 @@ module ring_buffer_tb();
         #10;
         // Reads are delayed by one clock cycle.
         `CHECK_EQUAL(data_out, data_in - 1);
+        `CHECK_EQUAL(data_out_valid, 1'b1);
         `CHECK_EQUAL(buffer_empty, 1'b0);
         `CHECK_EQUAL(buffer_100p_full, 1'b0);
       end
@@ -129,22 +136,26 @@ module ring_buffer_tb();
       put = 1'b1;
       #10  // Clock a 1 into the first slot.
       data_in = 8'd2;  // Clock 2 into rest of the slots.
+      `CHECK_EQUAL(data_out_valid, 1'b0);
 
       // data_out should present 8'd1 until we use "get" to advance.
       // Note that this is undefined behavior but we test it anyway.
       repeat (10) begin
         #10;
         `CHECK_EQUAL(data_out, 8'd1);
+        `CHECK_EQUAL(data_out_valid, 1'b0);
       end
 
       // data_out should present the 8'd1 on the first "get."
       get = 1'b1;
       #10;
       `CHECK_EQUAL(data_out, 8'd1);
+      `CHECK_EQUAL(data_out_valid, 1'b1);
 
       // data_out should present the 8'd2 after the next "get."
       #10;
       `CHECK_EQUAL(data_out, 8'd2);
+      `CHECK_EQUAL(data_out_valid, 1'b1);
     end // end of test case
 
     `TEST_CASE("ignore_gets_while_empty") begin
@@ -153,6 +164,7 @@ module ring_buffer_tb();
       repeat (10) begin
         #10;
         `CHECK_EQUAL(buffer_empty, 1'b1);
+        `CHECK_EQUAL(data_out_valid, 1'b0);
       end
 
       // Clock a 1 into the first slot.
@@ -166,6 +178,7 @@ module ring_buffer_tb();
       #10;
       `CHECK_EQUAL(buffer_empty, 1'b1);
       `CHECK_EQUAL(data_out, 8'b1010_0101);
+      `CHECK_EQUAL(data_out_valid, 1'b1);
     end // end of test case
 
     `TEST_CASE("buffer_empty_signal_works") begin
@@ -198,7 +211,7 @@ module ring_buffer_tb();
 
       `CHECK_EQUAL(buffer_empty, 1'b0);
       `CHECK_EQUAL(buffer_100p_full, 1'b1);
-      `CHECK_EQUAL(data_out, 8'b0000_1111);
+      `CHECK_EQUAL(data_out_valid, 1'b0);
 
       // Try to load some more data.
       data_in = 8'b0011_1100;
@@ -208,7 +221,7 @@ module ring_buffer_tb();
 
       `CHECK_EQUAL(buffer_empty, 1'b0);
       `CHECK_EQUAL(buffer_100p_full, 1'b1);
-      `CHECK_EQUAL(data_out, 8'b0000_1111);
+      `CHECK_EQUAL(data_out_valid, 1'b0);
 
       // Verify that all 128 bytes are the original data.
       put = 1'b0;
@@ -219,11 +232,13 @@ module ring_buffer_tb();
         `CHECK_EQUAL(buffer_empty, 1'b0);
         `CHECK_EQUAL(buffer_100p_full, 1'b0);
         `CHECK_EQUAL(data_out, 8'b0000_1111);
+        `CHECK_EQUAL(data_out_valid, 1'b1);
       end
       #10;  // Clock out the 128th (last) byte.
       `CHECK_EQUAL(buffer_empty, 1'b1);
       `CHECK_EQUAL(buffer_100p_full, 1'b0);
       `CHECK_EQUAL(data_out, 8'b0000_1111);
+      `CHECK_EQUAL(data_out_valid, 1'b1);
     end // end of test case
   end
 

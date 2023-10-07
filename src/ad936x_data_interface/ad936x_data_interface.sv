@@ -7,8 +7,8 @@
 // This module is designed to be compatible with both the ad9361 and the ad9363.
 // This module currently only supports dual-port, full-duplex, single-data rate,
 // CMOS configuration but could be adapted to support more modes in the future.
-// Its main purpose is to synchronize the asynchronous data bus and provide a
-// standard valid/ready handshake architecture for the rest of the modules.
+// Its main purpose is to synchronize the external data bus to the FPGA clock
+// and provide a standard valid/ready handshake for the rest of the modules.
 //
 // Dual-port: use both 12-bit chip interfaces (12-bits of TX, 12-bits of RX).
 // Full-duplex: both TX and RX channels are running concurrently.

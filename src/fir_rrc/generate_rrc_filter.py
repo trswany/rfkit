@@ -73,12 +73,13 @@ def main(argv: Sequence[str]):
   coefficients = numpy.zeros(FLAGS.num_taps, dtype=float)
   for index, time in enumerate(times):
     if time == 0.0:
-      coefficients[index] = FLAGS.symbol_rate * (1 + FLAGS.alpha * (4 / numpy.pi - 1))
       coefficients[index] = 1 / (2 * numpy.sqrt(1 / FLAGS.symbol_rate))
       coefficients[index] *= (1 + FLAGS.alpha * (4 / numpy.pi - 1))
-    if abs(time) == 1 / (4 * FLAGS.alpha * FLAGS.symbol_rate):
-      print(f'ERROR: TODO: implement this corner case.')
-      exit()
+    elif abs(time) == 1 / (4 * FLAGS.alpha * FLAGS.symbol_rate):
+      coefficients[index] = (1 + 2 / numpy.pi) * numpy.sin(numpy.pi / (4 * FLAGS.alpha))
+      coefficients[index] += (1 - 2 / numpy.pi) * numpy.cos(numpy.pi / (4 * FLAGS.alpha))
+      coefficients[index] *= FLAGS.alpha / (2 * numpy.sqrt(2 / FLAGS.symbol_rate))
+      coefficients[index] = -1
     else:
       coefficients[index] = 2 * FLAGS.alpha / (numpy.pi * numpy.sqrt(1 / FLAGS.symbol_rate))
       coefficients[index] *= (numpy.cos((1 + FLAGS.alpha) * numpy.pi * time * FLAGS.symbol_rate) + numpy.sin((1 - FLAGS.alpha) * numpy.pi * time * FLAGS.symbol_rate) / (4 * FLAGS.alpha * time * FLAGS.symbol_rate))
@@ -88,18 +89,33 @@ def main(argv: Sequence[str]):
   print(coefficients)
   print(f'DC gain of floating-point coefficients: {sum(coefficients)}')
 
-  # Convert the coefficients to fixed-point.
+  # Scale the coefficients so they fit into 14-bit 2's-complement signed ints.
   max_abs_coefficient = numpy.max(numpy.abs(coefficients))
   print(f'max_abs_coefficient: {max_abs_coefficient}')
-  max_fixed_point_coefficient_value = 2 ** (FLAGS.coefficient_width_bits - 1)
+  max_fixed_point_coefficient_value = (2 ** (FLAGS.coefficient_width_bits - 1)) - 1
   print('Maximum value of '
         f'{FLAGS.coefficient_width_bits}-bit 2\'s-complement number: '
         f'{max_fixed_point_coefficient_value}')
-  fixed_point_coefficients = ((coefficients / max_abs_coefficient)
-                                * max_fixed_point_coefficient_value).astype(int)
+  coefficients = (coefficients / max_abs_coefficient) * max_fixed_point_coefficient_value
+  print(f'DC gain of scaled coefficients: {sum(coefficients)}')
+
+  # Scale the coefficients down a bit more so that the gain is a power of 2.
+  # This will allow us to get back to 0-gain by simply chopping off bits.
+  num_bits_to_truncate = math.floor(math.log2(sum(coefficients)))
+  print(f'Number of bits to truncate to get back to 0 gain: {num_bits_to_truncate}')
+  coefficients = ((coefficients / sum(coefficients)) * (2 ** num_bits_to_truncate))
+  print(f'DC gain of scaled coefficients: {sum(coefficients)}')
+
+  # Convert the coefficients to fixed-point.
+  fixed_point_coefficients = (coefficients).astype(int)
   print('Fixed-point coefficients:')
   print(fixed_point_coefficients)
   print(f'DC gain of fixed-point coefficients: {sum(fixed_point_coefficients)}')
+
+  print('Fixed-point coefficients for copying to verilog:')
+  for coefficient in fixed_point_coefficients:
+    print(f'{coefficient:+}')
+
 
   # Calculate how much the width of the data will need to grow to avoid losing
   # any precision. The final output word length is the original word length

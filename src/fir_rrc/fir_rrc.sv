@@ -4,11 +4,18 @@
 //------------------------------------------------------------------------------
 
 // fir_rrc is a hard-coded implementation of a root-raised cosine FIR filter.
-// The number of taps, filter coefficients, and structure are all fixed.
+// The number of taps, filter coefficients, and structure are all fixed. The
+// filter gain is 0, so the input and output widths are the same.
+//
+// Coefficients were generated with the following tool:
+// python3 generate_rrc_filter.py --alpha=0.5 --symbol_rate=500e3 \
+//                                --sample_rate=2e6 --num_taps=20
+//
 // TODO: do decimation in this filter to improve efficiency.
 // TODO: round the output samples instead of truncating.
-
-// Example structure of a 4-tap FIR filter:
+//
+// Example structure of a direct-form 4-tap FIR filter. In this configuration,
+// the sampleN blocks are registers that get clocked by the sample clock.
 //
 // in --> sample0 --> sample1 --> sample2 --
 //     |           |           |           |
@@ -16,58 +23,56 @@
 //     |           |           |           |
 //     --------> accum0 ---> accum1 ---> accum2 --> out
 //
-// Coefficients were generated with the following tool:
-// python3 generate_rrc_filter.py --alpha=0.5 --symbol_rate=500e3 \
-//                                --sample_rate=2e6 --num_taps=20
+// Transposing the filter effectively pipelines the additions and eliminates
+// the large adder tree that results from the direct form. The main downside
+// of the transposed-form is the large fanout of the input sample.
+//
+// Example structure of a transposed-form 4-tap FIR filter. In this form,
+// the accumulator blocks are registers that get clocked by the sample clock.
+//
+//    in         in         in         in
+//     |          |          |          |
+//   coeff3     coeff2     coeff1     coeff0
+//     |          |          |          |
+//   accum3 --> accum2 --> accum1 --> accum0 --> out
 
 `timescale 1ns/1ps
 
 module fir_rrc (
   input logic clk,
   input logic rst,
-  input logic [11:0] in,
-  output logic [11:0] out
+  input logic signed [11:0] in,
+  output logic signed [11:0] out
 );
-  localparam int NumTaps = 20;
-  localparam logic [13:0] Coefficients[NumTaps] = {
-    -14'd17, 14'd245, 14'd284, -14'd182, -14'd931,
-    -14'd1162, -14'd11, 14'd2673, 14'd5942, 14'd8192,
-    14'd8192, 14'd5942, 14'd2673, -14'd11, -14'd1162,
-    -14'd931, -14'd182, 14'd284, 14'd245, -14'd17
+  localparam int NumTaps = 21;
+  localparam logic signed [13:0] Coefficients[NumTaps] = {
+    -14'd86, 14'd89, 14'd245, 14'd89, -14'd433, -14'd906, -14'd613,
+    14'd906, -14'd16, 14'd5632, 14'd6570, 14'd5632, -14'd16, 14'd906,
+    -14'd613, -14'd906, -14'd433, 14'd89, 14'd245, 14'd89, -14'd86
   };
 
-  // We need one fewer sample buffer and one fewer accumulator than the number
-  // of filter taps.
-  logic [11:0] samples[NumTaps-1];
-  logic [27:0] accumulators[NumTaps-1];
+  logic signed [26:0] accumulators[NumTaps];
 
   initial begin
-    if (NumTaps < 2) begin
-      $error("NumTaps must be at least 2.");
+    if (NumTaps < 1) begin
+      $error("NumTaps must be at least 1.");
     end
   end
 
   // The filter output is just the value from the last accumulator. Drop the
-  // last 16 bits because they were growth due to filter gain.
-  assign out = accumulators[NumTaps-2][27:16];
+  // last 14 bits because this filter was designed for exactly 2^14 of gain.
+  assign out = accumulators[0] >> 14;
 
   always @(posedge clk) begin
     if (rst) begin
-      foreach(samples[i]) begin
-        samples[i] <= 0;
-      end
       foreach(accumulators[i]) begin
         accumulators[i] <= 0;
       end
     end else begin
-      // Start the for loop at (NumTaps - 2) because "samples" and
-      // "accumulators" both have a size of (NumTaps - 1)
-      for (int i = (NumTaps - 2); i > 0; i--) begin
-        accumulators[i] <= accumulators[i-1] + (samples[i] * Coefficients[i+1]);
-        samples[i] <= samples[i-1];
+      for (int i = 0; i < (NumTaps - 1); i++) begin
+        accumulators[i] <= in * Coefficients[i] + accumulators[i+1];
       end
-      accumulators[0] <= in * Coefficients[0];
-      samples[0] <= in;
+      accumulators[NumTaps-1] <= in * Coefficients[NumTaps-1];
     end
   end
 endmodule

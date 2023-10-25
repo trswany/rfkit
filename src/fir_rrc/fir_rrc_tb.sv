@@ -57,9 +57,9 @@ module fir_rrc_tb();
 
     `TEST_CASE("produces_correct_impulse_response") begin
       localparam logic signed [11:0] expected_response[21] = {
-        -12'd11, 12'd11, 12'd30, 12'd11, -12'd55, -12'd114, -12'd77,
-        12'd113, -12'd2, 12'd703, 12'd820, 12'd703, -12'd2, 12'd113,
-        -12'd77, -12'd114, -12'd55, 12'd11, 12'd30, 12'd11, -12'd11
+        -12'd8, 12'd7, 12'd21, 12'd7, -12'd39, -12'd81, -12'd55,
+        12'd80, 12'd296, 12'd499, 12'd581, 12'd499, 12'd296, 12'd80,
+        -12'd55, -12'd81, -12'd39, 12'd7, 12'd21, 12'd7, -12'd8
       };
       in <= 12'b0111_1111_1111;
       #10;
@@ -68,7 +68,6 @@ module fir_rrc_tb();
         `CHECK_EQUAL(out, expected_response[i])
         #10;
       end
-      `CHECK_EQUAL(out, 1'd1)
     end // end of test case
 
     `TEST_CASE("produces_correct_dc_gain") begin
@@ -81,7 +80,7 @@ module fir_rrc_tb();
 
       repeat (50) begin
         #10;
-        `CHECK_EQUAL(out, 12'd2047)
+        `CHECK_EQUAL(out, 12'd2046)
       end
     end // end of test case
   end

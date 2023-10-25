@@ -46,9 +46,9 @@ module fir_rrc (
 );
   localparam int NumTaps = 21;
   localparam logic signed [13:0] Coefficients[NumTaps] = {
-    -14'd86, 14'd89, 14'd245, 14'd89, -14'd433, -14'd906, -14'd613,
-    14'd906, -14'd16, 14'd5632, 14'd6570, 14'd5632, -14'd16, 14'd906,
-    -14'd613, -14'd906, -14'd433, 14'd89, 14'd245, 14'd89, -14'd86
+    -14'd61, +14'd63, +14'd173, +14'd63, -14'd307, -14'd642, -14'd434,
+    +14'd642, +14'd2371, +14'd3994, +14'd4658, +14'd3994, +14'd2371, +14'd642,
+    -14'd434, -14'd642, -14'd307, +14'd63, +14'd173, +14'd63, -14'd61
   };
 
   logic signed [26:0] accumulators[NumTaps];
@@ -60,7 +60,7 @@ module fir_rrc (
   end
 
   // The filter output is just the value from the last accumulator. Drop the
-  // last 14 bits because this filter was designed for exactly 2^14 of gain.
+  // last 14 bits because this filter was designed for almost exactly 2^14 of gain.
   assign out = accumulators[0] >> 14;
 
   always @(posedge clk) begin
@@ -76,4 +76,3 @@ module fir_rrc (
     end
   end
 endmodule
-

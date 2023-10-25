@@ -73,17 +73,15 @@ def main(argv: Sequence[str]):
   coefficients = numpy.zeros(FLAGS.num_taps, dtype=float)
   for index, time in enumerate(times):
     if time == 0.0:
-      coefficients[index] = 1 / (2 * numpy.sqrt(1 / FLAGS.symbol_rate))
-      coefficients[index] *= (1 + FLAGS.alpha * (4 / numpy.pi - 1))
+      coefficients[index] = (1 - FLAGS.alpha) + ((4 * FLAGS.alpha) / numpy.pi)
     elif abs(time) == 1 / (4 * FLAGS.alpha * FLAGS.symbol_rate):
       coefficients[index] = (1 + 2 / numpy.pi) * numpy.sin(numpy.pi / (4 * FLAGS.alpha))
       coefficients[index] += (1 - 2 / numpy.pi) * numpy.cos(numpy.pi / (4 * FLAGS.alpha))
-      coefficients[index] *= FLAGS.alpha / (2 * numpy.sqrt(2 / FLAGS.symbol_rate))
-      coefficients[index] = -1
+      coefficients[index] *= FLAGS.alpha / numpy.sqrt(2)
     else:
-      coefficients[index] = 2 * FLAGS.alpha / (numpy.pi * numpy.sqrt(1 / FLAGS.symbol_rate))
-      coefficients[index] *= (numpy.cos((1 + FLAGS.alpha) * numpy.pi * time * FLAGS.symbol_rate) + numpy.sin((1 - FLAGS.alpha) * numpy.pi * time * FLAGS.symbol_rate) / (4 * FLAGS.alpha * time * FLAGS.symbol_rate))
-      coefficients[index] /= (1 - numpy.square(4 * FLAGS.alpha * time * FLAGS.symbol_rate))
+      coefficients[index] = numpy.sin(numpy.pi * time * FLAGS.symbol_rate * (1 - FLAGS.alpha))
+      coefficients[index] += 4 * FLAGS.alpha * time * FLAGS.symbol_rate * numpy.cos(numpy.pi * time * FLAGS.symbol_rate * (1 + FLAGS.alpha))
+      coefficients[index] /= numpy.pi * time * FLAGS.symbol_rate * (1 - numpy.square(4 * FLAGS.alpha * time * FLAGS.symbol_rate))
 
   print('Floating-point coefficients:')
   print(coefficients)

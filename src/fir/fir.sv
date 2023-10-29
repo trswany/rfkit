@@ -11,6 +11,17 @@
 // that effectively truncates the final accumulator register to get back down
 // to the original input bit width before presenting the output word.
 //
+// Inputs:
+// * clk: clock that runs much faster than the UART bitrate
+// * rst: synchronous reset for the detector
+// * in: 2's-complement input data
+// * in_valid: data will be clocked into the filter when in_valid is true
+// * out_ready: downstream module is ready to clock in the output word
+//
+// Outputs:
+// * out: 2's-complement output data
+// * out_valid: a new word is being presented on the output
+//
 // To design a low-pass filter for use in this FIR implementation:
 // 1) Choose input/output bit widths
 // 2) Choose the bit width of the filter weights; this is usually 2 more bits
@@ -68,7 +79,9 @@ module fir #(
   input logic clk,
   input logic rst,
   input logic signed [InputLengthBits-1:0] in,
-  output logic signed [InputLengthBits-1:0] out
+  output logic signed [InputLengthBits-1:0] out,
+  input logic in_valid, out_ready,
+  output logic out_valid
 );
   localparam logic signed [InputLengthBits-1:0] OutMax = 2**(InputLengthBits-1)-1;
   localparam logic signed [InputLengthBits-1:0] OutMin = -(2**(InputLengthBits-1));
@@ -76,6 +89,7 @@ module fir #(
 
   logic signed [AccumulatorLengthBits-1:0] accumulators[NumTaps];
   logic [TopBitsToDrop:0] overflow_detect_bits;
+  logic in_valid_d;
 
   initial begin
     if (NumTaps < 1) begin
@@ -95,11 +109,16 @@ module fir #(
         accumulators[i] <= 0;
       end
       out <= '0;
+      out_valid <= '0;
+      in_valid_d <= '0;
     end else begin
-      for (int i = 0; i < (NumTaps - 1); i++) begin
-        accumulators[i] <= in * Coefficients[i] + accumulators[i+1];
+      in_valid_d <= in_valid;
+      if (in_valid) begin
+        for (int i = 0; i < (NumTaps - 1); i++) begin
+          accumulators[i] <= in * Coefficients[i] + accumulators[i+1];
+        end
+        accumulators[NumTaps-1] <= in * Coefficients[NumTaps-1];
       end
-      accumulators[NumTaps-1] <= in * Coefficients[NumTaps-1];
 
       // The filter output is just a subset of the bits from the last
       // accumulator. We will drop the bottom OutputTruncationBits and the
@@ -112,6 +131,16 @@ module fir #(
         out <= OutMin;
       end else begin
         out <= OutMax;
+      end
+
+      if (in_valid_d) begin
+        // If we accepted a new sample, then the output changed and is valid.
+        out_valid = 1'b1;
+      end else if (out_ready) begin
+        // Otherwise, if the receiver is ready we ack by clearing valid.
+        out_valid = 1'b0;
+      end else begin
+        out_valid = out_valid;
       end
     end
   end

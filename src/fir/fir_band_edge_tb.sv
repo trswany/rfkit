@@ -16,6 +16,9 @@ module fir_band_edge_tb();
   logic rst = 1'b0;
   logic signed [11:0] in = 12'b0000_0000_0000;
   logic signed [11:0] out_real, out_imag;
+  logic in_valid = 1'b1;
+  logic out_ready = 1'b1;
+  logic out_valid_real, out_valid_imag;
 
   // These filters were generated with:
   // python3 generate_band_edge_filter.py --alpha=0.5 --symbol_rate=500e3
@@ -39,7 +42,10 @@ module fir_band_edge_tb();
     .clk(clk),
     .rst(rst),
     .in(in),
-    .out(out_real)
+    .out(out_real),
+    .in_valid(in_valid),
+    .out_valid(out_valid_real),
+    .out_ready(out_ready)
   );
 
   fir #(
@@ -57,7 +63,10 @@ module fir_band_edge_tb();
     .clk(clk),
     .rst(rst),
     .in(in),
-    .out(out_imag)
+    .out(out_imag),
+    .in_valid(in_valid),
+    .out_valid(out_valid_imag),
+    .out_ready(out_ready)
   );
 
   always begin

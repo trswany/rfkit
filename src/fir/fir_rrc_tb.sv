@@ -16,6 +16,10 @@ module fir_rrc_tb();
   logic rst = 1'b0;
   logic [11:0] in = 12'b0000_0000_0000;
   logic [11:0] out;
+  logic in_valid = 1'b1;
+  logic out_ready = 1'b1;
+  logic out_valid;
+
   fir #(
     .InputLengthBits(12),
     .CoefficientLengthBits(14),
@@ -31,7 +35,10 @@ module fir_rrc_tb();
     .clk(clk),
     .rst(rst),
     .in(in),
-    .out(out)
+    .out(out),
+    .in_valid(in_valid),
+    .out_valid(out_valid),
+    .out_ready(out_ready)
   );
 
   always begin

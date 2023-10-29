@@ -15,12 +15,18 @@ module fir_tb();
   logic rst = 1'b0;
   logic signed [7:0] in = 8'b0000_0000;
   logic signed [7:0] out;
+  logic in_valid = 1'b1;
+  logic out_ready = 1'b1;
+  logic out_valid;
 
   fir dut(
     .clk(clk),
     .rst(rst),
     .in(in),
-    .out(out)
+    .out(out),
+    .in_valid(in_valid),
+    .out_valid(out_valid),
+    .out_ready(out_ready)
   );
 
   always begin
@@ -119,6 +125,77 @@ module fir_tb();
       `CHECK_EQUAL(out, -8'd128)
       #10
       `CHECK_EQUAL(out, 8'd25)
+    end // end of test case
+
+    `TEST_CASE("respects_in_valid") begin
+      localparam logic signed [7:0] expected_response[3] = {
+        -8'd38, 8'd63, 8'd37
+      };
+      $display("time=%0t, data_set", $time);
+      in <= 8'b0111_1111;
+      #10;
+      in <= 8'b0;
+      #10;
+      in_valid = 1'b0;
+      in <= 8'b0101_0001;  // Garbage data to check for bad behavior.
+      `CHECK_EQUAL(out, expected_response[0])
+      #10;
+      `CHECK_EQUAL(out, expected_response[1])
+      #10;
+      `CHECK_EQUAL(out, expected_response[1])
+      #10
+      `CHECK_EQUAL(out, expected_response[1])
+      #10
+      in <= 8'b0;
+      in_valid = 1'b1;
+      `CHECK_EQUAL(out, expected_response[1])
+      #10
+      `CHECK_EQUAL(out, expected_response[1])
+      #10
+      `CHECK_EQUAL(out, expected_response[2])
+    end // end of test case
+
+    `TEST_CASE("out_valid_does_handshake") begin
+      localparam logic signed [7:0] expected_response[3] = {
+        -8'd38, 8'd63, 8'd37
+      };
+      $display("time=%0t, data_set", $time);
+      in <= 8'b0111_1111;
+      out_ready <= 1'b0;
+      #10;
+      in <= 8'b0;
+      #10;
+      in_valid = 1'b0;
+      `CHECK_EQUAL(out, expected_response[0])
+      `CHECK_EQUAL(out_valid, 1'b1)
+      #10;
+      `CHECK_EQUAL(out, expected_response[1])
+      `CHECK_EQUAL(out_valid, 1'b1)
+      #10;
+      `CHECK_EQUAL(out, expected_response[1])
+      `CHECK_EQUAL(out_valid, 1'b1)
+      #10
+      `CHECK_EQUAL(out, expected_response[1])
+      `CHECK_EQUAL(out_valid, 1'b1)
+      out_ready <= 1'b1;
+      #10
+      `CHECK_EQUAL(out, expected_response[1])
+      `CHECK_EQUAL(out_valid, 1'b0)
+      #10
+      in_valid = 1'b1;
+      `CHECK_EQUAL(out, expected_response[1])
+      `CHECK_EQUAL(out_valid, 1'b0)
+      #10
+      `CHECK_EQUAL(out, expected_response[1])
+      `CHECK_EQUAL(out_valid, 1'b0)
+      #10
+      `CHECK_EQUAL(out, expected_response[2])
+      `CHECK_EQUAL(out_valid, 1'b1)
+      repeat (50) begin
+        #10;
+      `CHECK_EQUAL(out, 0'b0)
+      `CHECK_EQUAL(out_valid, 1'b1)
+      end
     end // end of test case
   end
 

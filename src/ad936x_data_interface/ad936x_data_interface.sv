@@ -14,6 +14,7 @@
 // Full-duplex: both TX and RX channels are running concurrently.
 // Single data rate: RX data captured on the rising edge of ad936x_data_clk.
 // CMOS: the data lines are single-ended; this shouldn't affect the HDL.
+// Frame pulse mode: the frame signals pulse with a 50% duty cycle.
 //
 // clk must run substantially faster than ad936x_data_clk. This interface drops
 // samples in the case of RX overruns and sends garbage data in the case of TX
@@ -66,7 +67,8 @@ module ad936x_data_interface (
   logic [11:0] ad936x_rx_data_d, ad936x_rx_data_d2;
   logic [11:0] bbp_rx_data_i_buf, bbp_tx_data_q_buf;
   logic ad936x_rx_frame_d, ad936x_rx_frame_d2;
-  logic ad936x_data_clk_d, ad936x_data_clk_d2, ad936x_data_clk_d3;
+  logic ad936x_data_clk_d, ad936x_data_clk_d2;
+  logic ad936x_data_clk_d3, ad936x_data_clk_d4;
 
   // clk_fb is just the synchronized version of data_clk.
   assign ad936x_data_clk_fb = ad936x_data_clk_d2;
@@ -86,14 +88,17 @@ module ad936x_data_interface (
       ad936x_data_clk_d <= '0;
       ad936x_data_clk_d2 <= '0;
       ad936x_data_clk_d3 <= '0;
+      ad936x_data_clk_d4 <= '0;
       bbp_rx_data_i_buf <= '0;
       bbp_tx_data_q_buf <= '0;
     end else begin
       // Synchronize the ad936x inputs because they're from a different domain.
+      // Every external signal should go through 2 flip flops before access.
       ad936x_rx_data_d2 <= ad936x_rx_data_d;
       ad936x_rx_data_d <= ad936x_rx_data;
       ad936x_rx_frame_d2 <= ad936x_rx_frame_d;
       ad936x_rx_frame_d <= ad936x_rx_frame;
+      ad936x_data_clk_d4 <= ad936x_data_clk_d3;
       ad936x_data_clk_d3 <= ad936x_data_clk_d2;
       ad936x_data_clk_d2 <= ad936x_data_clk_d;
       ad936x_data_clk_d <= ad936x_data_clk;
@@ -101,10 +106,13 @@ module ad936x_data_interface (
       // On a data_clk rising edge, capture ad936x_rx_data. Send "valid"
       // only at the end of a frame (when both I and Q are valid). Buffer the
       // in-phase sample so that we always present a synchronized pair.
+      // Note: The AD9363 has a minimum hold time of 0ns, so we need to take
+      // the data and rx_frame values from one clock cycle earlier to avoid
+      // sampling the input during the transition.
       // Warning: This implementation blindly changes the data presented
       // without waiting for a handshake; this could cause issues if the
       // client falls behind.
-      if (!ad936x_data_clk_d3 && ad936x_data_clk_d2) begin
+      if (!ad936x_data_clk_d4 && ad936x_data_clk_d3) begin
         if (ad936x_rx_frame_d2) begin
           bbp_rx_data_i_buf <= ad936x_rx_data_d2;
         end else begin
@@ -115,7 +123,7 @@ module ad936x_data_interface (
       end
 
       // Handle the bbp_rx_data_valid handshaking.
-      if (!ad936x_data_clk_d3 && ad936x_data_clk_d2 &&
+      if (!ad936x_data_clk_d4 && ad936x_data_clk_d3 &&
           !ad936x_rx_frame_d2) begin
         // Assert data_valid if we just clocked out new data.
         bbp_rx_data_valid <= 1'b1;
@@ -129,7 +137,7 @@ module ad936x_data_interface (
       // valid signal - we have to send something no matter what, so we just
       // accept the fact that we might send garbage. Also note that the ready
       // signal always goes high for exactly one clock cycle per transfer.
-      if (!ad936x_data_clk_d3 && ad936x_data_clk_d2) begin
+      if (!ad936x_data_clk_d4 && ad936x_data_clk_d3) begin
         if (!ad936x_tx_frame) begin
           ad936x_tx_frame <= 1'b1;
           ad936x_tx_data <= bbp_tx_data_i;

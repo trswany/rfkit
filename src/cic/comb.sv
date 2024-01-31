@@ -4,6 +4,12 @@
 //------------------------------------------------------------------------------
 
 // comb is a comb stage for use in a CIC filter.
+// A comb simply subtracts a delayed copy of itself from. The delay length
+// ("m" in the figure below) is configured by the DelayLength parameter.
+//
+// in ----> (-) --> out
+//     |     |
+//   z^-m --->
 //
 // Inputs:
 // * clk: clock
@@ -34,7 +40,7 @@ module comb #(
   always @(posedge clk) begin
     if (rst) begin
       foreach(delay[i]) begin
-        delay[i] <= 0;
+        delay[i] <= '0;
       end
       out <= '0;
       out_valid <= '0;

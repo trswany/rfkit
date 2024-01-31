@@ -21,7 +21,7 @@
 `timescale 1ns/1ps
 
 module decimator #(
-  parameter int WordLengthBits = 29
+  parameter int WordLengthBits = 29,
   parameter int DecimationFactor = 50
 ) (
   input logic clk,
@@ -50,14 +50,15 @@ module decimator #(
         if (count == DecimationFactor - 1) begin
           count <= '0;
           out <= in;
-          out_valid <= 1'b1;
         end else begin
           count <= count + 1;
         end
+      end
+      if (in_valid && (count == DecimationFactor - 1)) begin
+        out_valid <= 1'b1;
       end else if (out_ready) begin
         out_valid <= 1'b0;
       end
     end
   end
 endmodule
-

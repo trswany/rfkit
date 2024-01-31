@@ -73,7 +73,7 @@ module compensator #(
   always @(posedge clk) begin
     if (rst) begin
       foreach(delay[i]) begin
-        delay[i] <= 0;
+        delay[i] <= '0;
       end
       out <= '0;
       out_valid <= '0;
@@ -83,7 +83,7 @@ module compensator #(
           delay[i] <= delay[i-1];
         end
         delay[0] <= in;
-        out <= in + (coefficient * delay[FilterOrder-1]) + delay[(2*FilterOrder)-1];
+        out <= in + (Coefficient * delay[FilterOrder-1]) + delay[(2*FilterOrder)-1];
         out_valid <= 1'b1;
       end else if (out_ready) begin
         out_valid <= 1'b0;

@@ -77,7 +77,7 @@ module cic_decimator #(
   wire comb_data_valid [FilterOrder+1];
 
   // Connect the input to the integrators.
-  assign integrator_data[InputLengthBits-1:0] = in;
+  assign integrator_data[0] = {{InternalLengthBits-InputLengthBits{1'b0}}, in};
   assign integrator_data_valid[0] = in_valid;
 
   // Integrators
@@ -103,25 +103,25 @@ module cic_decimator #(
     .clk(clk),
     .rst(rst),
     .in(integrator_data[FilterOrder]),
-    .in_valid(integrator_data_valid[FilterOrder])
+    .in_valid(integrator_data_valid[FilterOrder]),
     .out(comb_data[0]),
     .out_ready(1'b1),
     .out_valid(comb_data_valid[0])
   );
 
   // Combs
-  for (genvar i = 0; i < FilterOrder; i = i + 1) begin : gen_combs
-    integrator #(
+  for (genvar j = 0; j < FilterOrder; j = j + 1) begin : gen_combs
+    comb #(
       .WordLengthBits(InternalLengthBits),
       .DelayLength(DelayLength)
     ) comb_inst (
       .clk(clk),
       .rst(rst),
-      .in(comb_data[i]),
-      .in_valid(comb_data_valid[i]),
-      .out(comb_data[i+1]),
+      .in(comb_data[j]),
+      .in_valid(comb_data_valid[j]),
+      .out(comb_data[j+1]),
       .out_ready(1'b1),
-      .out_valid(comb_data_valid[i+1])
+      .out_valid(comb_data_valid[j+1])
     );
   end
 
@@ -133,7 +133,7 @@ module cic_decimator #(
   ) compensator_inst (
     .clk(clk),
     .rst(rst),
-    .in(comb_data[FilterOrder),
+    .in(comb_data[FilterOrder]),
     .in_valid(comb_data_valid[FilterOrder]),
     .out(out),
     .out_ready(out_ready),

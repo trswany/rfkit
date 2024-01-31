@@ -48,10 +48,10 @@ module frequency_locked_loop (
   output logic signed [11:0] out,
   output logic out_valid
 );
-  logic [11:0] out_i_real, out_i_imag, out_q_real, out_q_imag;
+  logic signed [11:0] out_i_real, out_i_imag, out_q_real, out_q_imag;
   logic be_out_valid, product_valid, difference_valid;
-  logic [22:0] product1, product2;
-  logic [23:0] difference;
+  logic signed [22:0] product1, product2;
+  logic signed [23:0] difference;
 
   // Band-edge FIR, in-phase data, real side of filter.
   fir #(
@@ -141,29 +141,19 @@ module frequency_locked_loop (
     .out_ready('1)
   );
 
-  // Low-pass loop filter for the FLL error signal. Designed with:
-  // generate_low_pass_filter.py --sample_rate=2e6 --num_taps=51 --cutoff=50e3
-  fir #(
+  cic_decimator #(
     .InputLengthBits(12),
-    .CoefficientLengthBits(14),
-    .AccumulatorLengthBits(30),
-    .NumTaps(51),
-    .OutputTruncationBits(18),
-    .Coefficients({
-      -14'd118, -14'd107, -14'd97, -14'd82, -14'd53, 14'd0, 14'd88, 14'd221,
-      14'd409, 14'd659, 14'd978, 14'd1367, 14'd1827, 14'd2351, 14'd2932,
-      14'd3557, 14'd4211, 14'd4876, 14'd5530, 14'd6155, 14'd6727, 14'd7227,
-      14'd7636, 14'd7940, 14'd8128, 14'd8191, 14'd8128, 14'd7940, 14'd7636,
-      14'd7227, 14'd6727, 14'd6155, 14'd5530, 14'd4876, 14'd4211, 14'd3557,
-      14'd2932, 14'd2351, 14'd1827, 14'd1367, 14'd978, 14'd659, 14'd409,
-      14'd221, 14'd88, 14'd0, -14'd53, -14'd82, -14'd97, -14'd107, -14'd118
-    })
+    .DecimationFactor(50),
+    .DelayLength(1),
+    .FilterOrder(3),
+    .InternalLengthBits(29),
+    .OutputLengthBits(36)
   ) loop_filter(
     .clk(clk),
     .rst(rst),
     .in(difference[($bits(difference) - 1) -: 12]),
-    .out(out),
     .in_valid(difference_valid),
+    .out(out),
     .out_valid(out_valid),
     .out_ready('1)
   );

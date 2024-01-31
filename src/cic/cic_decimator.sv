@@ -76,8 +76,8 @@ module cic_decimator #(
   wire signed [InternalLengthBits-1:0] comb_data [FilterOrder+1];
   wire comb_data_valid [FilterOrder+1];
 
-  // Connect the input to the integrators.
-  assign integrator_data[0] = {{InternalLengthBits-InputLengthBits{1'b0}}, in};
+  // Connect the input to the integrators. Make sure to sign-extend.
+  assign integrator_data[0] = {{InternalLengthBits-InputLengthBits{in[InputLengthBits-1]}}, in};
   assign integrator_data_valid[0] = in_valid;
 
   // Integrators

@@ -25,6 +25,11 @@
 // - This implementation is pretty simple, and there are more advanced
 //   implementations that mitigate the bit-growth.
 // - This module doesn't have an in_ready output because it's always ready.
+// - The integrator stages will overflow, but that's expected and required.
+//   Those stages must have signed overflow (no saturation), and the comb stages
+//   will correct for the overflow.
+// - The word length of all integrator and comb stages must match so that the
+//   integrator overflow correction happens correctly in the comb stages.
 //
 // To pick the parameters:
 // - Choose InputLengthBits and DecimationFactor as required by the design.

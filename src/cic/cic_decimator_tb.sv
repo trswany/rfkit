@@ -148,6 +148,39 @@ module cic_decimator_tb();
         `CHECK_EQUAL(out_valid, 1'b1)
       end
     end // end of test case
+
+    `TEST_CASE("handles_overflow") begin
+      // Integrator overflow should be corrected for in the comb stages. We will
+      // apply a step and verify that the output is stable and matches the
+      // expected value. The DC gain of the integrator + comb stages is
+      // the comb filter delay (DelayLength * DecimationFactor)^FilterOrder. The
+      // compensator's DC gain is (2+A) where A is the value of the single
+      // non-unity coefficient (A = -10 for a FilterOrder of 3). The total DC
+      // gain we expect is therefore (1 * 5)^3 + (2-10) = -1000.
+      in = 12'd987;
+      in_valid = 1'b1;
+      out_ready = 1'b1;
+      repeat (1000) begin
+        #10;
+      end
+      repeat (100) begin
+        `CHECK_EQUAL(out, -36'd987000)
+        #10;
+      end
+    end // end of test case
+
+    `TEST_CASE("extends_sign") begin
+      in = -12'd5;
+      in_valid = 1'b1;
+      out_ready = 1'b1;
+      repeat (1000) begin
+        #10;
+      end
+      repeat (100) begin
+        `CHECK_EQUAL(out, 36'd5000)
+        #10;
+      end
+    end // end of test case
   end
 
   `WATCHDOG(100ms);

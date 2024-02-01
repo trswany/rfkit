@@ -153,6 +153,20 @@ module comb_tb();
         #10;
       end
     end // end of test case
+
+    `TEST_CASE("overflows_correctly") begin
+      in_valid = 1'b1;
+      out_ready = 1'b1;
+      in = 12'b0000_0000_0011;
+      `CHECK_EQUAL(out, 12'b0000_0000_0000)
+      #10;
+      in = 12'b1000_0000_0000;
+      `CHECK_EQUAL(out, 12'b0000_0000_0011)
+      #10;
+      `CHECK_EQUAL(out, 12'b1000_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b0111_1111_1101)
+    end // end of test case
   end
 
   `WATCHDOG(100ms);

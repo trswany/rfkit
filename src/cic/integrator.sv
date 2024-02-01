@@ -4,8 +4,11 @@
 //------------------------------------------------------------------------------
 
 // integrator is a integrator stage for use in a CIC filter.
-// This block simply adds every new sample to a running sum. It doesn't have an
-// in_ready output because it's always ready.
+// This block simply adds every new sample to a running sum. Overflows are
+// intentionally allowed to occur because that is required for the CIC filter to
+// operate correctly. In a CIC, the integrator stages are allowed to have signed
+// overflows, and those overflows are corrected in the comb stages. This module
+// doesn't have an in_ready output because it's always ready.
 //
 // in -> (+) -----> out
 //        |     |

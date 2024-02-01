@@ -137,6 +137,26 @@ module integrator_tb();
       #10;
       `CHECK_EQUAL(out, -12'd3)
     end // end of test case
+
+    `TEST_CASE("overflows") begin
+      // Overflow behavior is critical for CIC operation.
+      in = 12'b0011_0000_0000;
+      in_valid = 1'b1;
+      out_ready = 1'b1;
+      `CHECK_EQUAL(out, 12'b0000_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b0011_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b0110_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b1001_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b1100_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b1111_0000_0000)
+      #10;
+      `CHECK_EQUAL(out, 12'b0010_0000_0000)
+    end // end of test case
   end
 
   `WATCHDOG(100ms);

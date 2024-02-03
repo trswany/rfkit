@@ -66,7 +66,7 @@ module ad936x_data_interface (
 );
   logic [11:0] ad936x_rx_data_d, ad936x_rx_data_d2, ad936x_rx_data_d3;
   logic [11:0] bbp_rx_data_i_buf, bbp_tx_data_q_buf;
-  logic ad936x_rx_frame_d, ad936x_rx_frame_d2;
+  logic ad936x_rx_frame_d, ad936x_rx_frame_d2, ad936x_rx_frame_d3;
   logic ad936x_data_clk_d, ad936x_data_clk_d2, ad936x_data_clk_d3;
 
   // clk_fb is just the synchronized version of data_clk.
@@ -85,6 +85,7 @@ module ad936x_data_interface (
       ad936x_rx_data_d3 <= '0;
       ad936x_rx_frame_d <= '0;
       ad936x_rx_frame_d2 <= '0;
+      ad936x_rx_frame_d3 <= '0;
       ad936x_data_clk_d <= '0;
       ad936x_data_clk_d2 <= '0;
       ad936x_data_clk_d3 <= '0;
@@ -96,6 +97,7 @@ module ad936x_data_interface (
       ad936x_rx_data_d3 <= ad936x_rx_data_d2;
       ad936x_rx_data_d2 <= ad936x_rx_data_d;
       ad936x_rx_data_d <= ad936x_rx_data;
+      ad936x_rx_frame_d3 <= ad936x_rx_frame_d2;
       ad936x_rx_frame_d2 <= ad936x_rx_frame_d;
       ad936x_rx_frame_d <= ad936x_rx_frame;
       ad936x_data_clk_d3 <= ad936x_data_clk_d2;
@@ -112,7 +114,7 @@ module ad936x_data_interface (
       // without waiting for a handshake; this could cause issues if the
       // client falls behind.
       if (!ad936x_data_clk_d3 && ad936x_data_clk_d2) begin
-        if (ad936x_rx_frame_d2) begin
+        if (ad936x_rx_frame_d3) begin
           bbp_rx_data_i_buf <= ad936x_rx_data_d3;
         end else begin
           bbp_rx_data_q <= ad936x_rx_data_d3;
@@ -123,7 +125,7 @@ module ad936x_data_interface (
 
       // Handle the bbp_rx_data_valid handshaking.
       if (!ad936x_data_clk_d3 && ad936x_data_clk_d2 &&
-          !ad936x_rx_frame_d2) begin
+          !ad936x_rx_frame_d3) begin
         // Assert data_valid if we just clocked out new data.
         bbp_rx_data_valid <= 1'b1;
       end else if (bbp_rx_data_ready && bbp_rx_data_valid) begin

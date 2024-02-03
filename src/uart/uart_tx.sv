@@ -37,23 +37,25 @@ module uart_tx (
 );
   logic [9:0] buffer;
   logic [7:0] num_samples_remaining;
+  logic [7:0] data_reversed;
 
   localparam logic StartBit = 1'b0;
   localparam logic StopBit = 1'b1;
   localparam logic [4:0] SamplesPerBit = 5'd16;
 
+  // Use the streaming operator to reverse the order of the data bits.
+  assign data_reversed = {<<bit{data[7:0]}};
+
   always @(posedge clk) begin
     if (rst) begin
       serial_data <= 1'b1;
       ready <= 1'b0;
-      // Use the streaming operator to reverse the order of the data bits.
-      buffer <= {StartBit, {<<bit{data[7:0]}}, StopBit};
+      buffer <= {StartBit, data_reversed, StopBit};
       num_samples_remaining <= 8'b0;
     end else begin
       // Only accept a new byte to transmit if we're not busy.
       if (start && ready) begin
-        // Use the streaming operator to reverse the order of the data bits.
-        buffer <= {StartBit, {<<bit{data[7:0]}}, StopBit};
+        buffer <= {StartBit, data_reversed, StopBit};
         num_samples_remaining <= SamplesPerBit * $size(buffer);
         ready <= 1'b0;
       end else if (num_samples_remaining > 0) begin

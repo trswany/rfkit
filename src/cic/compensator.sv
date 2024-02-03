@@ -10,9 +10,10 @@
 // automatically calculated based on the recommended values in the reference:
 // https://www.dsprelated.com/showarticle/1337.php
 //
-// Because there are 2 additions and one multiply-by-A, the maximum bit growth
-// of this filter is 2+ceil(log2(abs(A))). The largest absolute value in the
-// coefficient table is currently -18, so the maximum bit growth is 7.
+// This is a FIR filter with two unity taps and one multiply-by-A tap. The
+// maximum bit growth of this filter is ceil(log2(1 + 1 + abs(A))). The
+// largest absolute value in the coefficient table is currently -18, so
+// the maximum bit growth is 5.
 //
 // TODO: add a test to make sure we aren't overflowing due to bit growth.
 //
@@ -37,21 +38,21 @@
 `timescale 1ns/1ps
 
 // Determines the appropriate filter coefficient based on FilterOrder.
-function automatic signed [4:0] ChooseFilterCoefficient(int filter_order);
+function automatic signed [5:0] ChooseFilterCoefficient(int filter_order);
   if (filter_order == 1) begin
-    return -5'd18;
+    return -6'd18;
   end else if (filter_order <= 3) begin
-    return -5'd10;
+    return -6'd10;
   end else if (filter_order <= 5) begin
-    return -5'd6;
+    return -6'd6;
   end else if (filter_order <= 7) begin
-    return -5'd4;
+    return -6'd4;
   end
 endfunction
 
 module compensator #(
   parameter int InputLengthBits = 29,
-  parameter int OutputLengthBits = 36,
+  parameter int OutputLengthBits = 34,
   parameter int FilterOrder = 3
 ) (
   input logic clk,
@@ -61,12 +62,15 @@ module compensator #(
   input logic in_valid, out_ready,
   output logic out_valid
 );
-  localparam logic signed [4:0] Coefficient = ChooseFilterCoefficient(FilterOrder);
+  localparam logic signed [5:0] Coefficient = ChooseFilterCoefficient(FilterOrder);
   logic signed [InputLengthBits-1:0] delay[2*FilterOrder];
 
   initial begin
     if (FilterOrder > 7) begin
       $error("Coefficient calculator only supports FilterOrder <= 7.");
+    end
+    if ((OutputLengthBits - InputLengthBits) < 5) begin
+      $error("Output may overflow, see note about big growth.");
     end
   end
 

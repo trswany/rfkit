@@ -21,11 +21,11 @@ module cic_decimator_tb();
 
   cic_decimator #(
     .InputLengthBits(12),
-    .DecimationFactor(5),
+    .DecimationFactor(8),
     .DelayLength(1),
     .FilterOrder(3),
-    .InternalLengthBits(29),  // Warning: avoid overflow
-    .OutputLengthBits(36)  // Warning: avoid overflow
+    .InternalLengthBits(21),  // Warning: avoid overflow
+    .OutputLengthBits(26)  // Warning: avoid overflow
   ) dut(
     .clk(clk),
     .rst(rst),
@@ -132,7 +132,7 @@ module cic_decimator_tb();
       in_valid = 1'b0;
       out_ready = 1'b1;
       repeat (10) begin
-        repeat (5) begin
+        repeat (8) begin
           repeat (100) begin
             #10;
             `CHECK_EQUAL(out_valid, 1'b0)
@@ -156,7 +156,7 @@ module cic_decimator_tb();
       // the comb filter delay (DelayLength * DecimationFactor)^FilterOrder. The
       // compensator's DC gain is (2+A) where A is the value of the single
       // non-unity coefficient (A = -10 for a FilterOrder of 3). The total DC
-      // gain we expect is therefore (1 * 5)^3 + (2-10) = -1000.
+      // gain we expect is therefore ((1 * 8)^3) * (2-10) = -4096.
       in = 12'd987;
       in_valid = 1'b1;
       out_ready = 1'b1;
@@ -164,7 +164,7 @@ module cic_decimator_tb();
         #10;
       end
       repeat (100) begin
-        `CHECK_EQUAL(out, -36'd987000)
+        `CHECK_EQUAL(out, -36'd4042752)
         #10;
       end
     end // end of test case
@@ -177,7 +177,7 @@ module cic_decimator_tb();
         #10;
       end
       repeat (100) begin
-        `CHECK_EQUAL(out, 36'd5000)
+        `CHECK_EQUAL(out, 36'd20480)
         #10;
       end
     end // end of test case

@@ -19,7 +19,10 @@
 //   "When two's complement fixed-point arithmetic is used, the number of bits
 //   in an Mth-order CIC decimation filter's integrator and comb registers must
 //   accommodate the filter's input signal's maximum amplitude times the
-//   filter's total gain of (NR)M
+//   filter's total gain of (DelayLength*DecimationFactor)^FilterOrder
+// - The filter's gain is (DelayLength*DecimationFactor)^FilterOrder. To make
+//   it easy to compensate, set to a power of 2 and then bitshift (drop
+//   trailing bits) to divide back to unity gain.
 // - The compensating FIR filter also adds some bit growth; see that module
 //   for details.
 // - This implementation is pretty simple, and there are more advanced
@@ -62,11 +65,11 @@
 
 module cic_decimator #(
   parameter int InputLengthBits = 12,
-  parameter int DecimationFactor = 50,
+  parameter int DecimationFactor = 64,
   parameter int DelayLength = 1,
   parameter int FilterOrder = 3,
-  parameter int InternalLengthBits = 29,  // Warning: avoid overflow, see above.
-  parameter int OutputLengthBits = 36  // Warning: avoid overflow, see above.
+  parameter int InternalLengthBits = 30,  // Warning: avoid overflow, see above.
+  parameter int OutputLengthBits = 35  // Warning: avoid overflow, see above.
 ) (
   input logic clk,
   input logic rst,

@@ -15,13 +15,13 @@ module compensator_tb();
   logic rst = 1'b0;
   logic signed [11:0] in = 12'b0000_0000_0000;
   logic in_valid = 1'b0;
-  logic signed [19:0] out;
+  logic signed [16:0] out, out_order1;
   logic out_ready = 1'b0;
-  logic out_valid;
+  logic out_valid, out_valid_order1;
 
   compensator #(
     .InputLengthBits(12),
-    .OutputLengthBits(19),
+    .OutputLengthBits(17),
     .FilterOrder(3)
   ) dut(
     .clk(clk),
@@ -30,6 +30,20 @@ module compensator_tb();
     .in_valid(in_valid),
     .out(out),
     .out_valid(out_valid),
+    .out_ready(out_ready)
+  );
+
+  compensator #(
+    .InputLengthBits(12),
+    .OutputLengthBits(17),
+    .FilterOrder(1)
+  ) dut_order1(
+    .clk(clk),
+    .rst(rst),
+    .in(in),
+    .in_valid(in_valid),
+    .out(out_order1),
+    .out_valid(out_valid_order1),
     .out_ready(out_ready)
   );
 
@@ -54,7 +68,7 @@ module compensator_tb();
       in_valid = 1'b1;
       out_ready = 1'b0;
       repeat (1000) begin
-        `CHECK_EQUAL(out, 19'b0)
+        `CHECK_EQUAL(out, 17'b0)
         `CHECK_EQUAL(out_valid, 1'b0)
         #10;
       end
@@ -64,7 +78,7 @@ module compensator_tb();
       in = 12'b0;
       in_valid = 1'b1;
       repeat (1000) begin
-        `CHECK_EQUAL(out, 19'b0)
+        `CHECK_EQUAL(out, 17'b0)
         #10;
       end
     end // end of test case
@@ -126,22 +140,22 @@ module compensator_tb();
       in = 12'd2047;  // Maximum positive 12-bit signed integer
       #10;
       in = 12'd0;
-      `CHECK_EQUAL(out, 19'd2047)
+      `CHECK_EQUAL(out, 17'd2047)
       #10;
-      `CHECK_EQUAL(out, 19'd0)
+      `CHECK_EQUAL(out, 17'd0)
       #10;
-      `CHECK_EQUAL(out, 19'd0)
+      `CHECK_EQUAL(out, 17'd0)
       #10;
-      `CHECK_EQUAL(out, -19'd20470)
+      `CHECK_EQUAL(out, -17'd20470)
       #10;
-      `CHECK_EQUAL(out, 19'd0)
+      `CHECK_EQUAL(out, 17'd0)
       #10;
-      `CHECK_EQUAL(out, 19'd0)
+      `CHECK_EQUAL(out, 17'd0)
       #10;
-      `CHECK_EQUAL(out, 19'd2047)
+      `CHECK_EQUAL(out, 17'd2047)
       #10;
       repeat (100) begin
-        `CHECK_EQUAL(out, 19'd0)
+        `CHECK_EQUAL(out, 17'd0)
         #10;
       end
     end // end of test case
@@ -151,20 +165,48 @@ module compensator_tb();
       out_ready = 1'b1;
       in = 12'd2047;  // Maximum positive 12-bit signed integer
       #10;
-      `CHECK_EQUAL(out, 19'd2047)
+      `CHECK_EQUAL(out, 17'd2047)
       #10;
-      `CHECK_EQUAL(out, 19'd2047)
+      `CHECK_EQUAL(out, 17'd2047)
       #10;
-      `CHECK_EQUAL(out, 19'd2047)
+      `CHECK_EQUAL(out, 17'd2047)
       #10;
-      `CHECK_EQUAL(out, -19'd18423)
+      `CHECK_EQUAL(out, -17'd18423)
       #10;
-      `CHECK_EQUAL(out, -19'd18423)
+      `CHECK_EQUAL(out, -17'd18423)
       #10;
-      `CHECK_EQUAL(out, -19'd18423)
+      `CHECK_EQUAL(out, -17'd18423)
       #10;
       repeat (100) begin
-        `CHECK_EQUAL(out, -19'd16376)
+        `CHECK_EQUAL(out, -17'd16376)
+        #10;
+      end
+    end // end of test case
+
+    `TEST_CASE("never_overflows") begin
+      // repeat the test with maximum gain (lowest filter order) and check
+      // the worst-case situation to make sure we don't overflow.
+      in_valid = 1'b1;
+      out_ready = 1'b1;
+      in = 12'd2047;  // Maximum positive 12-bit signed integer
+      #10;
+      `CHECK_EQUAL(out_order1, 17'd2047)
+      in = -12'd2048;  // Maximum negative 12-bit signed integer
+      #10;
+      `CHECK_EQUAL(out_order1, -17'd38894)  // -2048 + 2047*-18
+      in = 12'd2047;  // Maximum positive 12-bit signed integer
+      #10;
+      `CHECK_EQUAL(out_order1, 17'd40958)  // 2047 + -2048*-18 + 2047
+      in = 12'd0;
+      #10;
+      `CHECK_EQUAL(out_order1, -17'd38894)  // 2047*-18 + -2048
+      #10;
+      `CHECK_EQUAL(out_order1, 17'd2047)
+      #10;
+      `CHECK_EQUAL(out_order1, 17'd0)
+      #10;
+      repeat (100) begin
+        `CHECK_EQUAL(out_order1, 17'd0)
         #10;
       end
     end // end of test case

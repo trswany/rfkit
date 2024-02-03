@@ -34,7 +34,8 @@
 //
 // Due to strong doppler effects in LEO, the CFO can be relatively high and can
 // change quickly. CCSDS 401.0-B-32 recommends to plan for +/- 80kHz and
-// +/- 3kHz/sec at 2GHz and altitudes less than 2e6 km.
+// +/- 3kHz/sec at 2GHz and altitudes less than 2e6 km. Receivers are typically
+// designed to have +/- 150kHz of tracking range.
 
 `timescale 1ns/1ps
 
@@ -52,6 +53,10 @@ module frequency_locked_loop (
   logic be_out_valid, product_valid, difference_valid;
   logic signed [22:0] product1, product2;
   logic signed [23:0] difference;
+  wire  signed [34:0] cic_out;
+  // Be careful here; we're chopping off top bits and may lose the sign bit.
+  // todo: figure out the gain we need and make this saturate.
+  assign out = cic_out[25 -: 12];
 
   // Band-edge FIR, in-phase data, real side of filter.
   fir #(
@@ -143,17 +148,17 @@ module frequency_locked_loop (
 
   cic_decimator #(
     .InputLengthBits(12),
-    .DecimationFactor(50),
+    .DecimationFactor(64),
     .DelayLength(1),
     .FilterOrder(3),
-    .InternalLengthBits(29),
-    .OutputLengthBits(36)
+    .InternalLengthBits(30),
+    .OutputLengthBits(35)
   ) loop_filter(
     .clk(clk),
     .rst(rst),
     .in(difference[($bits(difference) - 1) -: 12]),
     .in_valid(difference_valid),
-    .out(out),
+    .out(cic_out),
     .out_valid(out_valid),
     .out_ready('1)
   );
@@ -169,7 +174,6 @@ module frequency_locked_loop (
       product1 <= out_i_imag * out_q_real;
       product2 <= out_i_real * out_q_imag;
       product_valid <= be_out_valid;
-
       difference = product1 - product2;
       difference_valid <= product_valid;
     end

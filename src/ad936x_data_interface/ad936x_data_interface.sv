@@ -64,11 +64,10 @@ module ad936x_data_interface (
   output logic [11:0] ad936x_tx_data,
   output logic ad936x_tx_frame
 );
-  logic [11:0] ad936x_rx_data_d, ad936x_rx_data_d2;
+  logic [11:0] ad936x_rx_data_d, ad936x_rx_data_d2, ad936x_rx_data_d3;
   logic [11:0] bbp_rx_data_i_buf, bbp_tx_data_q_buf;
   logic ad936x_rx_frame_d, ad936x_rx_frame_d2;
-  logic ad936x_data_clk_d, ad936x_data_clk_d2;
-  logic ad936x_data_clk_d3, ad936x_data_clk_d4;
+  logic ad936x_data_clk_d, ad936x_data_clk_d2, ad936x_data_clk_d3;
 
   // clk_fb is just the synchronized version of data_clk.
   assign ad936x_data_clk_fb = ad936x_data_clk_d2;
@@ -83,22 +82,22 @@ module ad936x_data_interface (
       ad936x_tx_frame <= '0;
       ad936x_rx_data_d <= '0;
       ad936x_rx_data_d2 <= '0;
+      ad936x_rx_data_d3 <= '0;
       ad936x_rx_frame_d <= '0;
       ad936x_rx_frame_d2 <= '0;
       ad936x_data_clk_d <= '0;
       ad936x_data_clk_d2 <= '0;
       ad936x_data_clk_d3 <= '0;
-      ad936x_data_clk_d4 <= '0;
       bbp_rx_data_i_buf <= '0;
       bbp_tx_data_q_buf <= '0;
     end else begin
       // Synchronize the ad936x inputs because they're from a different domain.
       // Every external signal should go through 2 flip flops before access.
+      ad936x_rx_data_d3 <= ad936x_rx_data_d2;
       ad936x_rx_data_d2 <= ad936x_rx_data_d;
       ad936x_rx_data_d <= ad936x_rx_data;
       ad936x_rx_frame_d2 <= ad936x_rx_frame_d;
       ad936x_rx_frame_d <= ad936x_rx_frame;
-      ad936x_data_clk_d4 <= ad936x_data_clk_d3;
       ad936x_data_clk_d3 <= ad936x_data_clk_d2;
       ad936x_data_clk_d2 <= ad936x_data_clk_d;
       ad936x_data_clk_d <= ad936x_data_clk;
@@ -112,18 +111,18 @@ module ad936x_data_interface (
       // Warning: This implementation blindly changes the data presented
       // without waiting for a handshake; this could cause issues if the
       // client falls behind.
-      if (!ad936x_data_clk_d4 && ad936x_data_clk_d3) begin
+      if (!ad936x_data_clk_d3 && ad936x_data_clk_d2) begin
         if (ad936x_rx_frame_d2) begin
-          bbp_rx_data_i_buf <= ad936x_rx_data_d2;
+          bbp_rx_data_i_buf <= ad936x_rx_data_d3;
         end else begin
-          bbp_rx_data_q <= ad936x_rx_data_d2;
+          bbp_rx_data_q <= ad936x_rx_data_d3;
           bbp_rx_data_i <= bbp_rx_data_i_buf;
           // bbp_rx_data_valid will be asserted below.
         end
       end
 
       // Handle the bbp_rx_data_valid handshaking.
-      if (!ad936x_data_clk_d4 && ad936x_data_clk_d3 &&
+      if (!ad936x_data_clk_d3 && ad936x_data_clk_d2 &&
           !ad936x_rx_frame_d2) begin
         // Assert data_valid if we just clocked out new data.
         bbp_rx_data_valid <= 1'b1;
@@ -137,7 +136,7 @@ module ad936x_data_interface (
       // valid signal - we have to send something no matter what, so we just
       // accept the fact that we might send garbage. Also note that the ready
       // signal always goes high for exactly one clock cycle per transfer.
-      if (!ad936x_data_clk_d4 && ad936x_data_clk_d3) begin
+      if (!ad936x_data_clk_d3 && ad936x_data_clk_d2) begin
         if (!ad936x_tx_frame) begin
           ad936x_tx_frame <= 1'b1;
           ad936x_tx_data <= bbp_tx_data_i;

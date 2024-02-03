@@ -4,6 +4,8 @@ This is a tiny and very basic UART implementation. It is designed to be used
 without a processor, so there is no AXI or other bus interface. It is
 statically configured and supports only 8N1 data framing (1 start bit, 8 data
 bits, no parity bits, and one stop bit). The bus idle state is high (logic 1).
+Bits are transferred onto the wire starting with the least-significant bit and
+ending with the most significant bit.
 
 ## UART Receiver
 

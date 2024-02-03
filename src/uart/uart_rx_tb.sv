@@ -105,7 +105,7 @@ module uart_rx_tb();
         end
       end
       raw_data <= 01'b1;
-      `CHECK_EQUAL(got_byte, 8'b1101_0101);
+      `CHECK_EQUAL(got_byte, 8'b1010_1011);
     end // end of test case
 
     `TEST_CASE("receives_two_perfect_bytes") begin
@@ -141,7 +141,7 @@ module uart_rx_tb();
         end
       end
       raw_data <= 01'b1;
-      `CHECK_EQUAL(got_byte, 8'b1101_0101);
+      `CHECK_EQUAL(got_byte, 8'b1010_1011);
 
       repeat (10) begin
         #10;
@@ -173,7 +173,7 @@ module uart_rx_tb();
         end
       end
       raw_data <= 01'b1;
-      `CHECK_EQUAL(got_byte, 8'b1100_0101);
+      `CHECK_EQUAL(got_byte, 8'b1010_0011);
     end // end of test case
 
     `TEST_CASE("rejects_incorrect_stop_bit") begin
@@ -248,7 +248,7 @@ module uart_rx_tb();
         end
       end
       raw_data <= 01'b1;
-      `CHECK_EQUAL(got_byte, 8'b1101_0101);
+      `CHECK_EQUAL(got_byte, 8'b1010_1011);
     end // end of test case
   end
 

@@ -86,8 +86,9 @@ module uart_rx (
   end
 
   // When the buffer is full, the MSBit is a 1, and the LSBit is the stop bit.
-  // We want to strip both of those bits out of the final result.
+  // We want to strip both of those bits out of the final result. Use the
+  // streaming operator to reverse the order of the data bits.
   always_comb begin
-    data = buffer[8:1];
+    data = {<<bit{buffer[8:1]}};
   end
 endmodule

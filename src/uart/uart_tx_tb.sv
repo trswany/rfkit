@@ -8,18 +8,6 @@
 // Note: VUnit automatically adds the include path for vunit_defines.svh.
 `include "vunit_defines.svh"
 
-/*
-
-
-        ready <= 1'b0;
-      end else if (num_samples_remaining > 0) begin
-        ready <= 1'b0;
-      end else begin
-        ready <= 1'b1;
-
-*/
-
-
 `timescale 1ns/1ps
 
 module uart_tx_tb();
@@ -107,7 +95,7 @@ module uart_tx_tb();
       // Kick off transmission
       @(posedge sample_trigger);
       @(posedge clk);
-      data <= 8'b1101_0101;
+      data <= 8'b1010_1011;
       start <= 1'b1;
       @(posedge clk);
       start <= 1'b0;
@@ -158,7 +146,7 @@ module uart_tx_tb();
       // Kick off transmission
       @(posedge sample_trigger);
       @(posedge clk);
-      data <= 8'b1101_0101;
+      data <= 8'b1010_1011;
       start <= 1'b1;
       @(posedge clk);
       start <= 1'b0;
@@ -256,7 +244,7 @@ module uart_tx_tb();
       // Kick off transmission
       @(posedge sample_trigger);
       @(posedge clk);
-      data <= 8'b1101_0101;
+      data <= 8'b1010_1011;
       start <= 1'b1;
       @(posedge clk);
       start <= 1'b0;
@@ -323,7 +311,7 @@ module uart_tx_tb();
       // Kick off transmission
       @(posedge sample_trigger);
       @(posedge clk);
-      data <= 8'b1101_0101;
+      data <= 8'b1010_1011;
       start <= 1'b1;
       @(posedge clk);
       @(posedge clk);

@@ -21,6 +21,7 @@
 // is transmitted in 8N1 format (8 data bits, no parity, 1 stop bit) with 16
 // samples per bit. A start bit and a stop bit are appended to the byte being
 // transferred. The idle state of the serial_data output is logic 1 (mark).
+// The bits are sent starting with the least-significant bit.
 
 `timescale 1ns/1ps
 
@@ -45,12 +46,14 @@ module uart_tx (
     if (rst) begin
       serial_data <= 1'b1;
       ready <= 1'b0;
-      buffer <= {StartBit, data[7:0], StopBit};
+      // Use the streaming operator to reverse the order of the data bits.
+      buffer <= {StartBit, {<<bit{data[7:0]}}, StopBit};
       num_samples_remaining <= 8'b0;
     end else begin
       // Only accept a new byte to transmit if we're not busy.
       if (start && ready) begin
-        buffer <= {StartBit, data[7:0], StopBit};
+        // Use the streaming operator to reverse the order of the data bits.
+        buffer <= {StartBit, {<<bit{data[7:0]}}, StopBit};
         num_samples_remaining <= SamplesPerBit * $size(buffer);
         ready <= 1'b0;
       end else if (num_samples_remaining > 0) begin

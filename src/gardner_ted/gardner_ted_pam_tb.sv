@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: MIT
 //------------------------------------------------------------------------------
 
-// gardner_ted_tb is a testbench to verify gardner_ted.
+// gardner_ted_pam_tb is a testbench to verify gardner_ted_pam.
 
 // Note: VUnit automatically adds the include path for vunit_defines.svh.
 `include "vunit_defines.svh"
 
 `timescale 1ns/1ps
 
-module gardner_ted_tb();
+module gardner_ted_pam_tb();
   logic clk = 1'b0;
   logic rst = 1'b0;
   logic signed [11:0] in = 12'b0000_0000_0000;
@@ -20,7 +20,7 @@ module gardner_ted_tb();
   logic out_ready = 1'b0;
   logic out_valid;
 
-  gardner_ted #(
+  gardner_ted_pam #(
     .SamplesPerSymbol(4),
     .InputLengthBits(12),
     .OutputLengthBits(25)

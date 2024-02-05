@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 //------------------------------------------------------------------------------
 
-// gardner_ted is a Gardner timing-error detector.
+// gardner_ted_pam is a Gardner timing-error detector for PAM signals.
 // This module takes baseband rx samples from the output of the RRC matched
 // filter and generates an output that is proportional to the "error" between
 // the current and desired symbol sample points. This timing error signal will
@@ -44,7 +44,7 @@
 
 `timescale 1ns/1ps
 
-module gardner_ted #(
+module gardner_ted_pam #(
   parameter int SamplesPerSymbol = 4,
   parameter int InputLengthBits = 12,
   parameter int OutputLengthBits = 25  // Warning: avoid overflow, see above.

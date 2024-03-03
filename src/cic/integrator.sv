@@ -7,8 +7,9 @@
 // This block simply adds every new sample to a running sum. Overflows are
 // intentionally allowed to occur because that is required for the CIC filter to
 // operate correctly. In a CIC, the integrator stages are allowed to have signed
-// overflows, and those overflows are corrected in the comb stages. This module
-// doesn't have an in_ready output because it's always ready.
+// overflows, and those overflows are corrected in the comb stages. The
+// WordLength of this module must match the WordLength of the comb stages. This
+// module doesn't have an in_ready output because it's always ready.
 //
 // in -> (+) -----> out
 //        |     |

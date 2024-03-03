@@ -5,7 +5,8 @@
 
 // comb is a comb stage for use in a CIC filter.
 // A comb simply subtracts a delayed copy of itself from. The delay length
-// ("m" in the figure below) is configured by the DelayLength parameter.
+// ("m" in the figure below) is configured by the DelayLength parameter. This
+// module's WordLength must match the WordLength of the integrator stages.
 //
 // in ----> (-) --> out
 //     |     |

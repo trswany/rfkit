@@ -15,8 +15,6 @@
 // largest absolute value in the coefficient table is currently -18, so
 // the maximum bit growth is 5.
 //
-// TODO: add a test to make sure we aren't overflowing due to bit growth.
-//
 // in ----> z^-m ----> z^-m ----
 //     |           |           |
 //       \   A --> X         /

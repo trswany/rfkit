@@ -32,8 +32,8 @@
 //    should be -2^(N-1) if it's negative or 2^(N-1)-1 if it's positive.
 // 5) Determine the DC gain of the taps. If it's not an even power of 2,
 //    scale the taps down until the DC gain is a power of 2. This allows the
-//    truncator (divisor) stage to be a simple bit shift operation.
-// 6) Round the coefficients and conver them to fixed-point.
+//    truncator (divisor) stage to be a simple bit-shift operation.
+// 6) Round the coefficients and convert them to fixed-point.
 // 7) Determine the maximum bit growth:
 //    max_growth_bits = ceil(log2(sum(abs(fixed_point_coefficients))))
 // 8) Set the accumulator bit length to input_length_bits + max_growth_bits
